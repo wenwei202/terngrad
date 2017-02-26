@@ -3,5 +3,7 @@
 /bazel-genfiles
 /bazel-out
 /bazel-inception
+/bazel-bingrad
 /bazel-testlogs
 /bazel-tf
+/.idea
