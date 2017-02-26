@@ -13,6 +13,13 @@ package_group(
 )
 
 py_library(
+    name = "bingrad_common",
+    srcs = [
+        "bingrad_common.py",
+    ],
+)
+
+py_library(
     name = "dataset",
     srcs = [
         "dataset.py",
@@ -130,6 +137,7 @@ py_library(
         "inception_train.py",
     ],
     deps = [
+        ":bingrad_common",
         ":image_processing",
         ":inception",
     ],

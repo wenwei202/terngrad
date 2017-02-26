@@ -178,7 +178,8 @@ def conv2d(inputs,
            trainable=True,
            restore=True,
            scope=None,
-           reuse=None):
+           reuse=None,
+           seed=1):
   """Adds a 2D convolution followed by an optional batch_norm layer.
 
   conv2d creates a variable called 'weights', representing the convolutional
@@ -216,7 +217,7 @@ def conv2d(inputs,
     num_filters_in = inputs.get_shape()[-1]
     weights_shape = [kernel_h, kernel_w,
                      num_filters_in, num_filters_out]
-    weights_initializer = tf.truncated_normal_initializer(stddev=stddev)
+    weights_initializer = tf.truncated_normal_initializer(stddev=stddev, seed=seed)
     l2_regularizer = None
     if weight_decay and weight_decay > 0:
       l2_regularizer = losses.l2_regularizer(weight_decay)
@@ -258,7 +259,8 @@ def fc(inputs,
        trainable=True,
        restore=True,
        scope=None,
-       reuse=None):
+       reuse=None,
+       seed=1):
   """Adds a fully connected layer followed by an optional batch_norm layer.
 
   FC creates a variable called 'weights', representing the fully connected
@@ -288,7 +290,7 @@ def fc(inputs,
   with tf.variable_scope(scope, 'FC', [inputs], reuse=reuse):
     num_units_in = inputs.get_shape()[1]
     weights_shape = [num_units_in, num_units_out]
-    weights_initializer = tf.truncated_normal_initializer(stddev=stddev)
+    weights_initializer = tf.truncated_normal_initializer(stddev=stddev, seed=seed)
     l2_regularizer = None
     if weight_decay and weight_decay > 0:
       l2_regularizer = losses.l2_regularizer(weight_decay)

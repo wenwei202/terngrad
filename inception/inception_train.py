@@ -30,6 +30,7 @@ import tensorflow as tf
 from inception import image_processing
 from inception import inception_model as inception
 from inception.slim import slim
+import inception.bingrad_common as bingrad_common
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -117,7 +118,7 @@ def _tower_loss(images, labels, num_classes, scope, reuse_variables=None):
   losses = tf.get_collection(slim.losses.LOSSES_COLLECTION, scope)
 
   # Calculate the total loss for the current tower.
-  regularization_losses = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
+  regularization_losses = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES, scope)
   total_loss = tf.add_n(losses + regularization_losses, name='total_loss')
 
   # Compute the moving average of all individual losses and the total loss.
@@ -237,37 +238,40 @@ def train(dataset):
     for i in range(FLAGS.num_gpus):
       with tf.device('/gpu:%d' % i):
         with tf.name_scope('%s_%d' % (inception.TOWER_NAME, i)) as scope:
-          # Force all Variables to reside on the CPU.
-          with slim.arg_scope([slim.variables.variable], device='/cpu:0'):
-            # Calculate the loss for one tower of the ImageNet model. This
-            # function constructs the entire ImageNet model but shares the
-            # variables across all towers.
-            loss = _tower_loss(images_splits[i], labels_splits[i], num_classes,
-                               scope, reuse_variables)
+          with tf.variable_scope('%s_%d' % (inception.TOWER_NAME, i)):
+            # Force Variables to reside on the individual GPU.
+            #with slim.arg_scope([slim.variables.variable], device='/cpu:0'):
+            with slim.arg_scope([slim.variables.variable], device='/gpu:%d' % i):
+              # Calculate the loss for one tower of the ImageNet model. This
+              # function constructs the entire ImageNet model but shares the
+              # variables across all towers.
+              loss = _tower_loss(images_splits[i], labels_splits[i], num_classes,
+                                 scope, reuse_variables)
 
-          # Reuse variables for the next tower.
-          reuse_variables = True
+            # Reuse variables for the next tower.
+            reuse_variables = False
 
-          # Retain the summaries from the final tower.
-          summaries = tf.get_collection(tf.GraphKeys.SUMMARIES, scope)
+            # Retain the summaries from the final tower.
+            summaries = tf.get_collection(tf.GraphKeys.SUMMARIES, scope)
 
-          # Retain the Batch Normalization updates operations only from the
-          # final tower. Ideally, we should grab the updates from all towers
-          # but these stats accumulate extremely fast so we can ignore the
-          # other stats from the other towers without significant detriment.
-          batchnorm_updates = tf.get_collection(slim.ops.UPDATE_OPS_COLLECTION,
+            # Retain the Batch Normalization updates operations only from the
+            # final tower. Ideally, we should grab the updates from all towers
+            # but these stats accumulate extremely fast so we can ignore the
+            # other stats from the other towers without significant detriment.
+            batchnorm_updates = tf.get_collection(slim.ops.UPDATE_OPS_COLLECTION,
                                                 scope)
 
-          # Calculate the gradients for the batch of data on this ImageNet
-          # tower.
-          grads = opt.compute_gradients(loss)
+            # Calculate the gradients for the batch of data on this ImageNet
+            # tower.
+            grads = opt.compute_gradients(loss, tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope=scope))
 
-          # Keep track of the gradients across all towers.
-          tower_grads.append(grads)
+            # Keep track of the gradients across all towers.
+            tower_grads.append(grads)
 
     # We must calculate the mean of each gradient. Note that this is the
     # synchronization point across all towers.
-    grads = _average_gradients(tower_grads)
+    #grads = _average_gradients(tower_grads)
+    tower_grads = bingrad_common.average_gradients2(tower_grads)
 
     # Add a summaries for the input processing and global_step.
     summaries.extend(input_summaries)
@@ -284,7 +288,10 @@ def train(dataset):
             tf.summary.histogram(var.op.name + '/gradients', grad))
 
     # Apply the gradients to adjust the shared variables.
-    apply_gradient_op = opt.apply_gradients(grads, global_step=global_step)
+    #apply_gradient_op = opt.apply_gradients(grads, global_step=global_step)
+    apply_gradient_op = []
+    for tower_grad in tower_grads:
+        apply_gradient_op.append(opt.apply_gradients(tower_grad, global_step=global_step))
 
     # Add histograms for trainable variables.
     for var in tf.trainable_variables():
@@ -305,8 +312,10 @@ def train(dataset):
 
     # Group all updates to into a single train op.
     batchnorm_updates_op = tf.group(*batchnorm_updates)
-    train_op = tf.group(apply_gradient_op, variables_averages_op,
-                        batchnorm_updates_op)
+    #train_op = tf.group(apply_gradient_op, variables_averages_op,
+    #                    batchnorm_updates_op)
+    train_op = tf.group(batchnorm_updates_op, variables_averages_op,
+                        *apply_gradient_op)
 
     # Create a saver.
     saver = tf.train.Saver(tf.all_variables())
