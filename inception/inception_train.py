@@ -249,7 +249,7 @@ def train(dataset):
                                  scope, reuse_variables)
 
             # Reuse variables for the next tower.
-            reuse_variables = False
+            reuse_variables = None
 
             # Retain the summaries from the final tower.
             summaries = tf.get_collection(tf.GraphKeys.SUMMARIES, scope)

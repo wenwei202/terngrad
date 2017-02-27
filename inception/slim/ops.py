@@ -371,6 +371,24 @@ def max_pool(inputs, kernel_size, stride=2, padding='VALID', scope=None):
                           strides=[1, stride_h, stride_w, 1],
                           padding=padding)
 
+@scopes.add_arg_scope
+def lrn(inputs, depth_radius=5, bias=2.0, alpha=1.0e-4, beta=0.75, scope=None):
+  """Adds a Local Response Normalization layer.
+
+  Args:
+    inputs: a tensor of size [batch_size, height, width, depth].
+    depth_radius: 0-D. Half-width of the 1-D normalization window.
+    bias: An offset (usually positive to avoid dividing by 0).
+    alpha: A scale factor, usually positive.
+    beta: An exponent..
+    scope: Optional scope for name_scope.
+
+  Returns:
+    a tensor representing the results of the operation.
+  """
+  with tf.name_scope(scope, 'LocalRespNorm', [inputs]):
+    return tf.nn.lrn(inputs,
+                     depth_radius=depth_radius, bias=bias, alpha=alpha, beta=beta)
 
 @scopes.add_arg_scope
 def avg_pool(inputs, kernel_size, stride=2, padding='VALID', scope=None):
