@@ -81,6 +81,15 @@ py_library(
     ],
 )
 
+py_library(
+    name = "models",
+    srcs = ["models.py"],
+    deps = [
+        ":ops",
+        ":scopes",
+    ],
+)
+
 py_test(
     name = "inception_test",
     size = "medium",
@@ -95,6 +104,7 @@ py_library(
     srcs = ["slim.py"],
     deps = [
         ":inception",
+        ":models",
         ":losses",
         ":ops",
         ":scopes",

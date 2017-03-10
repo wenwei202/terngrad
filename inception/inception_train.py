@@ -56,6 +56,8 @@ tf.app.flags.DEFINE_boolean('fine_tune', False,
 tf.app.flags.DEFINE_string('pretrained_model_checkpoint_path', '',
                            """If specified, restore this pretrained model """
                            """before beginning any training.""")
+tf.app.flags.DEFINE_string('net', 'alexnet',
+                          """The net to train (inception, alexnet, vggnet).""")
 
 # **IMPORTANT**
 # Please note that this learning rate schedule is heavily dependent on the
@@ -105,14 +107,14 @@ def _tower_loss(images, labels, num_classes, scope, reuse_variables=None):
 
   # Build inference Graph.
   with tf.variable_scope(tf.get_variable_scope(), reuse=reuse_variables):
-    logits = inception.inference(images, num_classes, for_training=True,
+    logits = inception.inference(images, num_classes, net=FLAGS.net, for_training=True,
                                  restore_logits=restore_logits,
                                  scope=scope)
 
   # Build the portion of the Graph calculating the losses. Note that we will
   # assemble the total_loss using a custom function below.
   split_batch_size = images.get_shape().as_list()[0]
-  inception.loss(logits, labels, batch_size=split_batch_size)
+  inception.loss(logits, labels, batch_size=split_batch_size, aux_logits=('inception'==FLAGS.net))
 
   # Assemble all of the losses for the current tower only.
   losses = tf.get_collection(slim.losses.LOSSES_COLLECTION, scope)
@@ -248,7 +250,7 @@ def train(dataset):
               loss = _tower_loss(images_splits[i], labels_splits[i], num_classes,
                                  scope, reuse_variables)
 
-            # Reuse variables for the next tower.
+            # Reuse variables for the next tower?
             reuse_variables = None
 
             # Retain the summaries from the final tower.

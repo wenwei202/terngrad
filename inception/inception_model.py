@@ -32,6 +32,7 @@ from inception.slim import slim
 
 FLAGS = tf.app.flags.FLAGS
 
+
 # If a model is trained using multiple GPUs, prefix all Op names with tower_name
 # to differentiate the operations. Note that this prefix is removed from the
 # names of the summaries when visualizing a model.
@@ -45,7 +46,7 @@ BATCHNORM_MOVING_AVERAGE_DECAY = 0.9997
 MOVING_AVERAGE_DECAY = 0.9999
 
 
-def inference(images, num_classes, for_training=False, restore_logits=True,
+def inference(images, num_classes, net='alexnet', for_training=False, restore_logits=True,
               scope=None):
   """Build Inception v3 model architecture.
 
@@ -78,13 +79,24 @@ def inference(images, num_classes, for_training=False, restore_logits=True,
                         stddev=0.1,
                         activation=tf.nn.relu,
                         batch_norm_params=batch_norm_params):
-      logits, endpoints = slim.inception.inception_v3(
-          images,
-          dropout_keep_prob=0.8,
-          num_classes=num_classes,
-          is_training=for_training,
-          restore_logits=restore_logits,
-          scope=scope)
+      if net == 'inception':
+          logits, endpoints = slim.inception.inception_v3(
+              images,
+              dropout_keep_prob=0.8,
+              num_classes=num_classes,
+              is_training=for_training,
+              restore_logits=restore_logits,
+              scope=scope)
+      elif net == 'alexnet':
+          logits, endpoints = slim.models.alexnet(
+              images,
+              dropout_keep_prob=0.5,
+              num_classes=num_classes,
+              is_training=for_training,
+              restore_logits=restore_logits,
+              scope=scope)
+      else:
+          raise ValueError("Wrong net type:{}".format(net))
 
   # Add summaries for viewing model statistics on TensorBoard.
   _activation_summaries(endpoints)
@@ -95,7 +107,7 @@ def inference(images, num_classes, for_training=False, restore_logits=True,
   return logits, auxiliary_logits
 
 
-def loss(logits, labels, batch_size=None):
+def loss(logits, labels, batch_size=None, aux_logits=True):
   """Adds all losses for the model.
 
   Note the final loss is not returned. Instead, the list of losses are collected
@@ -129,11 +141,12 @@ def loss(logits, labels, batch_size=None):
                                  weight=1.0)
 
   # Cross entropy loss for the auxiliary softmax head.
-  slim.losses.cross_entropy_loss(logits[1],
-                                 dense_labels,
-                                 label_smoothing=0.1,
-                                 weight=0.4,
-                                 scope='aux_loss')
+  if aux_logits:
+      slim.losses.cross_entropy_loss(logits[1],
+                                     dense_labels,
+                                     label_smoothing=0.1,
+                                     weight=0.4,
+                                     scope='aux_loss')
 
 
 def _activation_summary(x):

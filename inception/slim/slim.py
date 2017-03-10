@@ -17,6 +17,7 @@
 
 # Collapse tf-slim into a single namespace.
 from inception.slim import inception_model as inception
+from inception.slim import models as models
 from inception.slim import losses
 from inception.slim import ops
 from inception.slim import scopes

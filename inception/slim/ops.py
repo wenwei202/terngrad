@@ -372,7 +372,7 @@ def max_pool(inputs, kernel_size, stride=2, padding='VALID', scope=None):
                           padding=padding)
 
 @scopes.add_arg_scope
-def lrn(inputs, depth_radius=5, bias=2.0, alpha=1.0e-4, beta=0.75, scope=None):
+def lrn(inputs, depth_radius=2, bias=2.0, alpha=1.0e-4, beta=0.75, scope=None):
   """Adds a Local Response Normalization layer.
 
   Args:

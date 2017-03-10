@@ -65,6 +65,18 @@ py_library(
     ],
 )
 
+py_library(
+    name = "models",
+    srcs = [
+        "models.py",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        ":dataset",
+        "//inception/slim",
+    ],
+)
+
 py_binary(
     name = "imagenet_eval",
     srcs = [
@@ -95,6 +107,7 @@ py_library(
     deps = [
         ":image_processing",
         ":inception",
+        ":models",
     ],
 )
 
@@ -140,6 +153,7 @@ py_library(
         ":bingrad_common",
         ":image_processing",
         ":inception",
+        ":models",
     ],
 )
 
@@ -151,6 +165,7 @@ py_library(
     deps = [
         ":image_processing",
         ":inception",
+        ":models",
     ],
 )
 
