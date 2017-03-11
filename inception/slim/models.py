@@ -54,6 +54,7 @@ def alexnet(inputs,
                  num_classes=1000,
                  is_training=True,
                  restore_logits=True,
+                 seed=1,
                  scope=''):
   """AlexNet from https://papers.nips.cc/paper/4824-imagenet-classification-with-deep-convolutional-neural-networks.
 
@@ -76,7 +77,7 @@ def alexnet(inputs,
     with scopes.arg_scope([ops.conv2d, ops.fc, ops.batch_norm, ops.dropout],
                           is_training=is_training):
       with scopes.arg_scope([ops.conv2d, ops.fc],
-                            weight_decay=0.0005, stddev=0.01, bias=0.1, seed=1):
+                            weight_decay=0.0005, stddev=0.01, bias=0.1, seed=seed):
         with scopes.arg_scope([ops.conv2d],
                               stride=1, padding='SAME'):
           with scopes.arg_scope([ops.max_pool],
@@ -134,12 +135,13 @@ def alexnet(inputs,
 
 
 slim = tf.contrib.slim
-trunc_normal = lambda stddev: tf.truncated_normal_initializer(0.0, stddev,seed=1)
+#trunc_normal = lambda stddev: tf.truncated_normal_initializer(0.0, stddev,seed=1)
 
-def _alexnet_v2_arg_scope(weight_decay=0.0005):
+def _alexnet_v2_arg_scope(weight_decay=0.0005,seed=1):
   with slim.arg_scope([slim.conv2d, slim.fully_connected],
                       activation_fn=tf.nn.relu,
                       biases_initializer=tf.constant_initializer(0.1),
+                      weights_initializer=tf.contrib.layers.xavier_initializer(seed=seed),
                       weights_regularizer=slim.l2_regularizer(weight_decay)):
     with slim.arg_scope([slim.conv2d], padding='SAME'):
       with slim.arg_scope([slim.max_pool2d], padding='VALID') as arg_sc:
@@ -151,6 +153,7 @@ def _alexnet_v2(inputs,
                num_classes=1000,
                 is_training=True,
                restore_logits=True,
+                seed=1,
                scope='alexnet_v2'):
   """AlexNet version 2.
   Described in: http://arxiv.org/pdf/1404.5997v2.pdf
@@ -191,7 +194,7 @@ def _alexnet_v2(inputs,
 
       # Use conv2d instead of fully_connected layers.
       with slim.arg_scope([slim.conv2d],
-                          weights_initializer=trunc_normal(0.005),
+                          weights_initializer=tf.truncated_normal_initializer(0.0, 0.005,seed=seed),
                           biases_initializer=tf.constant_initializer(0.1)):
         net = slim.conv2d(net, 4096, [5, 5], padding='VALID',
                           scope='fc6')
@@ -223,11 +226,97 @@ def alexnet_v2(inputs,
                num_classes=1000,
                 is_training=True,
                restore_logits=True,
+               seed=1,
                scope='alexnet_v2'):
-  with slim.arg_scope(_alexnet_v2_arg_scope()):
+  with slim.arg_scope(_alexnet_v2_arg_scope(seed=seed)):
     return _alexnet_v2(inputs,
                dropout_keep_prob=dropout_keep_prob,
                num_classes=num_classes,
-                is_training=is_training,
+               is_training=is_training,
                restore_logits=restore_logits,
+               seed=seed,
                scope=scope)
+
+
+def _vgg_arg_scope(weight_decay=0.0005, seed=1):
+  """Defines the VGG arg scope.
+  Args:
+    weight_decay: The l2 regularization coefficient.
+  Returns:
+    An arg_scope.
+  """
+  with slim.arg_scope([slim.conv2d, slim.fully_connected],
+                      activation_fn=tf.nn.relu,
+                      weights_regularizer=slim.l2_regularizer(weight_decay),
+                      weights_initializer=tf.contrib.layers.xavier_initializer(seed=seed),
+                      biases_initializer=tf.zeros_initializer()):
+    with slim.arg_scope([slim.conv2d], padding='SAME') as arg_sc:
+      return arg_sc
+
+def _vgg_16(inputs,
+            dropout_keep_prob=0.5,
+           num_classes=1000,
+           is_training=True,
+            restore_logits=True,
+           scope='vgg_16'):
+  """Oxford Net VGG 16-Layers version D Example.
+  Note: To use in classification mode, resize input to 224x224.
+  Args:
+    inputs: a tensor of size [batch_size, height, width, channels].
+    num_classes: number of predicted classes.
+    is_training: whether or not the model is being trained.
+    dropout_keep_prob: the probability that activations are kept in the dropout
+      layers during training.
+    restore_logits: .
+    scope: Optional scope for the variables.
+  Returns:
+    the last op containing the log predictions and end_points dict.
+  """
+  with tf.variable_scope(scope, 'vgg_16', [inputs]) as sc:
+    end_points_collection = sc.name + '_end_points'
+    # Collect outputs for conv2d, fully_connected and max_pool2d.
+    with slim.arg_scope([slim.conv2d, slim.fully_connected, slim.max_pool2d],
+                        outputs_collections=end_points_collection):
+      net = slim.repeat(inputs, 2, slim.conv2d, 64, [3, 3], scope='conv1')
+      net = slim.max_pool2d(net, [2, 2], scope='pool1')
+      net = slim.repeat(net, 2, slim.conv2d, 128, [3, 3], scope='conv2')
+      net = slim.max_pool2d(net, [2, 2], scope='pool2')
+      net = slim.repeat(net, 3, slim.conv2d, 256, [3, 3], scope='conv3')
+      net = slim.max_pool2d(net, [2, 2], scope='pool3')
+      net = slim.repeat(net, 3, slim.conv2d, 512, [3, 3], scope='conv4')
+      net = slim.max_pool2d(net, [2, 2], scope='pool4')
+      net = slim.repeat(net, 3, slim.conv2d, 512, [3, 3], scope='conv5')
+      net = slim.max_pool2d(net, [2, 2], scope='pool5')
+      # Use fully_connected layers.
+      net = slim.flatten(net)
+      net = slim.fully_connected(net, 4096, scope='fc14')
+      net = slim.dropout(net, dropout_keep_prob, is_training=is_training, scope='dropout14')
+      net = slim.fully_connected(net, 4096, scope='fc15')
+      net = slim.dropout(net, dropout_keep_prob, is_training=is_training, scope='dropout15')
+
+      logits = slim.fully_connected(net, num_classes,
+                                 activation_fn=None,
+                                 scope='fc16')
+
+      # Convert end_points_collection into a end_point dict.
+      end_points = slim.utils.convert_collection_to_dict(end_points_collection)
+      end_points['logits'] = logits
+      end_points['predictions'] = tf.nn.softmax(logits, name='predictions')
+      end_points['aux_logits'] = tf.constant(0)
+      return logits, end_points
+_vgg_16.default_image_size = 224
+
+def vgg_16(inputs,
+            dropout_keep_prob=0.5,
+           num_classes=1000,
+           is_training=True,
+            restore_logits=True,
+           seed=1,
+           scope='vgg_16'):
+  with slim.arg_scope(_vgg_arg_scope(seed=seed)):
+    return _vgg_16(inputs,
+            dropout_keep_prob=dropout_keep_prob,
+           num_classes=num_classes,
+           is_training=is_training,
+            restore_logits=restore_logits,
+           scope=scope)

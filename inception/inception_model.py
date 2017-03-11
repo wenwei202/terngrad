@@ -100,7 +100,7 @@ def inference(images, num_classes, net='alexnet', for_training=False, restore_lo
       #    raise ValueError("Wrong net type:{}".format(net))
 
   # Add summaries for viewing model statistics on TensorBoard.
-  _activation_summaries(endpoints)
+  # _activation_summaries(endpoints)
 
   # Grab the logits associated with the side head. Employed during training.
   auxiliary_logits = endpoints['aux_logits']
