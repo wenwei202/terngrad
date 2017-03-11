@@ -87,16 +87,17 @@ def inference(images, num_classes, net='alexnet', for_training=False, restore_lo
               is_training=for_training,
               restore_logits=restore_logits,
               scope=scope)
-      elif net == 'alexnet':
-          logits, endpoints = slim.models.alexnet(
+      else:
+          method_to_call = getattr(slim.models, net)
+          logits, endpoints = method_to_call(
               images,
               dropout_keep_prob=0.5,
               num_classes=num_classes,
               is_training=for_training,
               restore_logits=restore_logits,
               scope=scope)
-      else:
-          raise ValueError("Wrong net type:{}".format(net))
+      #else:
+      #    raise ValueError("Wrong net type:{}".format(net))
 
   # Add summaries for viewing model statistics on TensorBoard.
   _activation_summaries(endpoints)
