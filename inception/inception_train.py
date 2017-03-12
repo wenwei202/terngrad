@@ -37,7 +37,7 @@ FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string('train_dir', '/tmp/imagenet_train',
                            """Directory where to write event logs """
                            """and checkpoint.""")
-tf.app.flags.DEFINE_integer('max_steps', 10000000,
+tf.app.flags.DEFINE_integer('max_steps',370000,
                             """Number of batches to run.""")
 tf.app.flags.DEFINE_string('subset', 'train',
                            """Either 'train' or 'validation'.""")
@@ -284,7 +284,8 @@ def train(dataset):
     # We must calculate the mean of each gradient. Note that this is the
     # synchronization point across all towers.
     #grads = _average_gradients(tower_grads)
-    tower_grads = bingrad_common.average_gradients2(tower_grads)
+    if len(tower_grads)>1:
+      tower_grads = bingrad_common.average_gradients2(tower_grads)
 
     # Add a summaries for the input processing and global_step.
     summaries.extend(input_summaries)
