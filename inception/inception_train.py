@@ -57,8 +57,9 @@ tf.app.flags.DEFINE_string('pretrained_model_checkpoint_path', '',
                            """If specified, restore this pretrained model """
                            """before beginning any training.""")
 tf.app.flags.DEFINE_string('net', 'alexnet',
-                          """The net to train (inception, alexnet, vggnet).""")
-
+                          """The net to train (inception, alexnet, vgg_16, vgg_a).""")
+tf.app.flags.DEFINE_string('optimizer', 'momentum',
+                          """The optimizer of SGD (momentum, adam, gd, rmsprop).""")
 # **IMPORTANT**
 # Please note that this learning rate schedule is heavily dependent on the
 # hardware architecture, batch size and any changes to the model architecture
@@ -69,11 +70,11 @@ tf.app.flags.DEFINE_string('net', 'alexnet',
 # With 8 Tesla K40's and a batch size = 256, the following setup achieves
 # precision@1 = 73.5% after 100 hours and 100K steps (20 epochs).
 # Learning rate decay factor selected from http://arxiv.org/abs/1404.5997.
-tf.app.flags.DEFINE_float('initial_learning_rate', 0.1,
+tf.app.flags.DEFINE_float('initial_learning_rate', 0.01,
                           """Initial learning rate.""")
-tf.app.flags.DEFINE_float('num_epochs_per_decay', 30.0,
+tf.app.flags.DEFINE_float('num_epochs_per_decay', 20.0,
                           """Epochs after which learning rate decays.""")
-tf.app.flags.DEFINE_float('learning_rate_decay_factor', 0.16,
+tf.app.flags.DEFINE_float('learning_rate_decay_factor', 0.1,
                           """Learning rate decay factor.""")
 
 # Constants dictating the learning rate schedule.
@@ -206,9 +207,19 @@ def train(dataset):
                                     staircase=True)
 
     # Create an optimizer that performs gradient descent.
-    opt = tf.train.RMSPropOptimizer(lr, RMSPROP_DECAY,
-                                    momentum=RMSPROP_MOMENTUM,
-                                    epsilon=RMSPROP_EPSILON)
+    opt = None
+    if ('gd' == FLAGS.optimizer):
+        opt = tf.train.GradientDescentOptimizer(lr)
+    elif ('momentum' == FLAGS.optimizer):
+        opt = tf.train.MomentumOptimizer(lr, 0.9)
+    elif ('adam' == FLAGS.optimizer):
+        opt = tf.train.AdamOptimizer(lr)
+    elif ('rmsprop' == FLAGS.optimizer):
+        opt = tf.train.RMSPropOptimizer(lr, RMSPROP_DECAY,
+              momentum=RMSPROP_MOMENTUM,
+              epsilon=RMSPROP_EPSILON)
+    else:
+        raise ValueError("Wrong optimizer!")
 
     # Get images and labels for ImageNet and split the batch across GPUs.
     assert FLAGS.batch_size % FLAGS.num_gpus == 0, (
