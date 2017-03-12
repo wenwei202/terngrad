@@ -320,3 +320,72 @@ def vgg_16(inputs,
            is_training=is_training,
             restore_logits=restore_logits,
            scope=scope)
+
+
+def _vgg_a(inputs,
+            dropout_keep_prob=0.5,
+           num_classes=1000,
+           is_training=True,
+            restore_logits=True,
+           scope='vgg_a'):
+  """Oxford Net VGG 16-Layers version D Example.
+  Note: To use in classification mode, resize input to 224x224.
+  Args:
+    inputs: a tensor of size [batch_size, height, width, channels].
+    num_classes: number of predicted classes.
+    is_training: whether or not the model is being trained.
+    dropout_keep_prob: the probability that activations are kept in the dropout
+      layers during training.
+    restore_logits: .
+    scope: Optional scope for the variables.
+  Returns:
+    the last op containing the log predictions and end_points dict.
+  """
+  with tf.variable_scope(scope, 'vgg_a', [inputs]) as sc:
+    end_points_collection = sc.name + '_end_points'
+    # Collect outputs for conv2d, fully_connected and max_pool2d.
+    with slim.arg_scope([slim.conv2d, slim.fully_connected, slim.max_pool2d],
+                        outputs_collections=end_points_collection):
+      net = slim.repeat(inputs, 1, slim.conv2d, 64, [3, 3], scope='conv1')
+      net = slim.max_pool2d(net, [2, 2], scope='pool1')
+      net = slim.repeat(net, 1, slim.conv2d, 128, [3, 3], scope='conv2')
+      net = slim.max_pool2d(net, [2, 2], scope='pool2')
+      net = slim.repeat(net, 2, slim.conv2d, 256, [3, 3], scope='conv3')
+      net = slim.max_pool2d(net, [2, 2], scope='pool3')
+      net = slim.repeat(net, 2, slim.conv2d, 512, [3, 3], scope='conv4')
+      net = slim.max_pool2d(net, [2, 2], scope='pool4')
+      net = slim.repeat(net, 2, slim.conv2d, 512, [3, 3], scope='conv5')
+      net = slim.max_pool2d(net, [2, 2], scope='pool5')
+      # Use fully_connected layers.
+      net = slim.flatten(net)
+      net = slim.fully_connected(net, 4096, scope='fc14')
+      net = slim.dropout(net, dropout_keep_prob, is_training=is_training, scope='dropout14')
+      net = slim.fully_connected(net, 4096, scope='fc15')
+      net = slim.dropout(net, dropout_keep_prob, is_training=is_training, scope='dropout15')
+
+      logits = slim.fully_connected(net, num_classes,
+                                 activation_fn=None,
+                                 scope='fc16')
+
+      # Convert end_points_collection into a end_point dict.
+      end_points = slim.utils.convert_collection_to_dict(end_points_collection)
+      end_points['logits'] = logits
+      end_points['predictions'] = tf.nn.softmax(logits, name='predictions')
+      end_points['aux_logits'] = tf.constant(0)
+      return logits, end_points
+_vgg_a.default_image_size = 224
+
+def vgg_a(inputs,
+            dropout_keep_prob=0.5,
+           num_classes=1000,
+           is_training=True,
+            restore_logits=True,
+           seed=1,
+           scope='vgg_a'):
+  with slim.arg_scope(_vgg_arg_scope(seed=seed)):
+    return _vgg_a(inputs,
+            dropout_keep_prob=dropout_keep_prob,
+           num_classes=num_classes,
+           is_training=is_training,
+            restore_logits=restore_logits,
+           scope=scope)
