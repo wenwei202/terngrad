@@ -39,7 +39,7 @@ tf.app.flags.DEFINE_string('checkpoint_dir', '/tmp/imagenet_train',
                            """Directory where to read model checkpoints.""")
 
 # Flags governing the frequency of the eval.
-tf.app.flags.DEFINE_integer('eval_interval_secs', 60 * 5,
+tf.app.flags.DEFINE_integer('eval_interval_secs', 60 * 60,
                             """How often to run the eval.""")
 tf.app.flags.DEFINE_boolean('run_once', False,
                             """Whether to run eval only once.""")
@@ -51,6 +51,8 @@ tf.app.flags.DEFINE_integer('num_examples', 50000,
 tf.app.flags.DEFINE_string('subset', 'validation',
                            """Either 'validation' or 'train'.""")
 
+tf.app.flags.DEFINE_string('device', '/gpu:0',
+                           """Device to run eval.""")
 
 def _eval_once(saver, summary_writer, top_1_op, top_5_op, summary_op):
   """Runs Eval once.
@@ -62,7 +64,10 @@ def _eval_once(saver, summary_writer, top_1_op, top_5_op, summary_op):
     top_5_op: Top 5 op.
     summary_op: Summary op.
   """
-  with tf.Session() as sess:
+  config = tf.ConfigProto()
+  config.allow_soft_placement = True
+  config.gpu_options.allow_growth = True
+  with tf.Session(config=config) as sess:
     ckpt = tf.train.get_checkpoint_state(FLAGS.checkpoint_dir)
     if ckpt and ckpt.model_checkpoint_path:
       if os.path.isabs(ckpt.model_checkpoint_path):
@@ -105,9 +110,9 @@ def _eval_once(saver, summary_writer, top_1_op, top_5_op, summary_op):
         count_top_1 += np.sum(top_1)
         count_top_5 += np.sum(top_5)
         step += 1
-        if step % 20 == 0:
+        if step % 100 == 0:
           duration = time.time() - start_time
-          sec_per_batch = duration / 20.0
+          sec_per_batch = duration / 100.0
           examples_per_sec = FLAGS.batch_size / sec_per_batch
           print('%s: [%d batches out of %d] (%.1f examples/sec; %.3f'
                 'sec/batch)' % (datetime.now(), step, num_iter,
@@ -122,8 +127,8 @@ def _eval_once(saver, summary_writer, top_1_op, top_5_op, summary_op):
 
       summary = tf.Summary()
       summary.ParseFromString(sess.run(summary_op))
-      summary.value.add(tag='Precision @ 1', simple_value=precision_at_1)
-      summary.value.add(tag='Recall @ 5', simple_value=recall_at_5)
+      summary.value.add(tag='Accuracy @ 1', simple_value=precision_at_1)
+      summary.value.add(tag='Accuracy @ 5', simple_value=recall_at_5)
       summary_writer.add_summary(summary, global_step)
 
     except Exception as e:  # pylint: disable=broad-except
@@ -135,7 +140,8 @@ def _eval_once(saver, summary_writer, top_1_op, top_5_op, summary_op):
 
 def evaluate(dataset):
   """Evaluate model on Dataset for a number of steps."""
-  with tf.Graph().as_default():
+  with tf.Graph().as_default(), tf.device(FLAGS.device):
+  #with tf.Graph().as_default():
     # Get images and labels from the dataset.
     images, labels = image_processing.inputs(dataset)
 
@@ -158,12 +164,12 @@ def evaluate(dataset):
     saver = tf.train.Saver(variables_to_restore)
 
     # Build the summary operation based on the TF collection of Summaries.
-    summary_op = tf.merge_all_summaries()
+    summaries = tf.get_collection(tf.GraphKeys.SUMMARIES)
+    summary_op = tf.summary.merge(summaries)
 
-    graph_def = tf.get_default_graph().as_graph_def()
-    summary_writer = tf.train.SummaryWriter(FLAGS.eval_dir,
-                                            graph_def=graph_def)
 
+    summary_writer = tf.summary.FileWriter(FLAGS.eval_dir,
+      graph=tf.get_default_graph())
     while True:
       _eval_once(saver, summary_writer, top_1_op, top_5_op, summary_op)
       if FLAGS.run_once:

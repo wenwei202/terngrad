@@ -136,8 +136,6 @@ def _tower_loss(images, labels, num_classes, scope, reuse_variables=None):
     loss_name = re.sub('%s_[0-9]*/' % inception.TOWER_NAME, '', l.op.name)
     # Name each loss as '(raw)' and name the moving average version of the loss
     # as the original loss name.
-    #tf.scalar_summary(loss_name +' (raw)', l)
-    #tf.scalar_summary(loss_name, loss_averages.average(l))
     tf.summary.scalar(loss_name +' (raw)', l)
     tf.summary.scalar(loss_name, loss_averages.average(l))
 
@@ -291,14 +289,12 @@ def train(dataset):
     summaries.extend(input_summaries)
 
     # Add a summary to track the learning rate.
-    #summaries.append(tf.scalar_summary('learning_rate', lr))
     summaries.append(tf.summary.scalar('learning_rate', lr))
 
     # Add histograms for gradients.
     for grad, var in grads:
       if grad is not None:
         summaries.append(
-            #tf.histogram_summary(var.op.name + '/gradients', grad))
             tf.summary.histogram(var.op.name + '/gradients', grad))
 
     # Apply the gradients to adjust the shared variables.
@@ -308,9 +304,8 @@ def train(dataset):
         apply_gradient_op.append(opt.apply_gradients(tower_grad, global_step=global_step))
 
     # Add histograms for trainable variables.
-    for var in tf.trainable_variables():
-      #summaries.append(tf.histogram_summary(var.op.name, var))
-      summaries.append(tf.summary.histogram(var.op.name, var))
+    #for var in tf.trainable_variables():
+    #  summaries.append(tf.summary.histogram(var.op.name, var))
 
     # Track the moving averages of all trainable variables.
     # Note that we maintain a "double-average" of the BatchNormalization
@@ -332,10 +327,18 @@ def train(dataset):
                         *apply_gradient_op)
 
     # Create a saver.
-    saver = tf.train.Saver(tf.all_variables())
+    #saver = tf.train.Saver(tf.all_variables())
+    # Only save the variables in the first tower
+    save_pattern = ('(%s_%d)' % (inception.TOWER_NAME, 0)) + ".*ExponentialMovingAverage"
+    var_dic = {}
+    _vars = tf.global_variables()
+    for _var in _vars:
+        if re.compile(save_pattern).match(_var.op.name):
+            _var_name = re.sub('%s_[0-9]*/' % inception.TOWER_NAME, '', _var.op.name)
+            var_dic[_var_name] = _var
+    saver = tf.train.Saver(var_dic)
 
     # Build the summary operation from the last tower summaries.
-    #summary_op = tf.merge_summary(summaries)
     summary_op = tf.summary.merge(summaries)
 
     # Build an initialization operation to run below.
@@ -344,9 +347,11 @@ def train(dataset):
     # Start running operations on the Graph. allow_soft_placement must be set to
     # True to build towers on GPU, as some of the ops do not have GPU
     # implementations.
-    sess = tf.Session(config=tf.ConfigProto(
-        allow_soft_placement=True,
-        log_device_placement=FLAGS.log_device_placement))
+    config = tf.ConfigProto()
+    config.gpu_options.allow_growth = True
+    config.allow_soft_placement = True ############ Excepted GPU op may be placed CPU
+    config.log_device_placement = FLAGS.log_device_placement
+    sess = tf.Session(config=config)
     sess.run(init)
 
     if FLAGS.pretrained_model_checkpoint_path:
@@ -381,7 +386,7 @@ def train(dataset):
         print(format_str % (datetime.now(), step, loss_value,
                             examples_per_sec, duration))
 
-      if step % 100 == 0:
+      if step % 1000 == 0:
         summary_str = sess.run(summary_op)
         summary_writer.add_summary(summary_str, step)
 
