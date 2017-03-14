@@ -22,7 +22,7 @@ from datetime import datetime
 import math
 import os.path
 import time
-
+import re
 
 import numpy as np
 import tensorflow as tf
@@ -53,6 +53,9 @@ tf.app.flags.DEFINE_string('subset', 'validation',
 
 tf.app.flags.DEFINE_string('device', '/gpu:0',
                            """Device to run eval.""")
+
+tf.app.flags.DEFINE_string('tower', '',
+                           """Recover model from the tower (tower_0).""")
 
 def _eval_once(saver, summary_writer, top_1_op, top_5_op, summary_op):
   """Runs Eval once.
@@ -161,7 +164,17 @@ def evaluate(dataset):
     variable_averages = tf.train.ExponentialMovingAverage(
         inception.MOVING_AVERAGE_DECAY)
     variables_to_restore = variable_averages.variables_to_restore()
-    saver = tf.train.Saver(variables_to_restore)
+
+    if ''==FLAGS.tower:
+      saver = tf.train.Saver(variables_to_restore)
+    else:
+      restore_pattern = ('()' % (FLAGS.tower)) + ".*ExponentialMovingAverage"
+      var_dic = {}
+      for _var in variables_to_restore:
+        if re.compile(restore_pattern).match(_var.op.name):
+          _var_name = re.sub('%s_[0-9]*/' % 'tower', '', _var.op.name)
+          var_dic[_var_name] = _var
+      saver = tf.train.Saver(var_dic)
 
     # Build the summary operation based on the TF collection of Summaries.
     summaries = tf.get_collection(tf.GraphKeys.SUMMARIES)
