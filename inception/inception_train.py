@@ -77,6 +77,12 @@ tf.app.flags.DEFINE_float('num_epochs_per_decay', 20.0,
 tf.app.flags.DEFINE_float('learning_rate_decay_factor', 0.1,
                           """Learning rate decay factor.""")
 
+# Configurations for BinGrad
+tf.app.flags.DEFINE_integer('grad_bits', 32,
+                            """The number of gradient bits.""")
+tf.app.flags.DEFINE_float('clip_factor', 0.0,
+                            """The factor of stddev to clip gradients.""")
+
 # Constants dictating the learning rate schedule.
 RMSPROP_DECAY = 0.9                # Decay term for RMSProp.
 RMSPROP_MOMENTUM = 0.9             # Momentum in RMSProp.
@@ -183,6 +189,19 @@ def _average_gradients(tower_grads):
   return average_grads
 
 
+def _gradient_summary(grad_vars, name="", add_sparsity=False):
+  """Helper to create summaries for gradiants and variables.
+
+  Args:
+    grad_vars: pairs of gradients and variables
+  """
+  for grad, var in grad_vars:
+    if grad is not None:
+      tf.summary.histogram(var.op.name + "/" + name +'/gradients', grad)
+      if add_sparsity:
+        tf.summary.scalar(var.op.name + "/" + name +'/sparsity', tf.nn.zero_fraction(grad))
+
+
 def train(dataset):
   """Train on dataset for a number of steps."""
   with tf.Graph().as_default(), tf.device('/cpu:0'):
@@ -231,20 +250,18 @@ def train(dataset):
         dataset,
         num_preprocess_threads=num_preprocess_threads)
 
-    input_summaries = copy.copy(tf.get_collection(tf.GraphKeys.SUMMARIES))
 
     # Number of classes in the Dataset label set plus 1.
     # Label 0 is reserved for an (unused) background class.
     num_classes = dataset.num_classes() + 1
 
-     # Split the batch of images and labels for towers.
-    #images_splits = tf.split(0, FLAGS.num_gpus, images)
-    #labels_splits = tf.split(0, FLAGS.num_gpus, labels)
+    # Split the batch of images and labels for towers.
     images_splits = tf.split(images, FLAGS.num_gpus, 0)
     labels_splits = tf.split(labels, FLAGS.num_gpus, 0)
 
     # Calculate the gradients for each model tower.
     tower_grads = []
+    tower_scalers = []
     reuse_variables = None
     for i in range(FLAGS.num_gpus):
       with tf.device('/gpu:%d' % i):
@@ -262,9 +279,6 @@ def train(dataset):
             # Reuse variables for the next tower?
             reuse_variables = None
 
-            # Retain the summaries from the final tower.
-            summaries = tf.get_collection(tf.GraphKeys.SUMMARIES, scope)
-
             # Retain the Batch Normalization updates operations only from the
             # final tower. Ideally, we should grab the updates from all towers
             # but these stats accumulate extremely fast so we can ignore the
@@ -279,33 +293,77 @@ def train(dataset):
             # Keep track of the gradients across all towers.
             tower_grads.append(grads)
 
+            # Calculate the scalers of binary gradients
+            if 1 == FLAGS.grad_bits:
+              # Always calculate scalers whatever clip_factor is.
+              # Returns max value when clip_factor==0.0
+              scalers = bingrad_common.gradient_binarizing_scalers(grads, FLAGS.clip_factor)
+              tower_scalers.append(scalers)
+
+    if 1 == FLAGS.grad_bits:
+      for grads in tower_grads:
+        _gradient_summary(grads, 'floating')
+
+      # We must calculate the mean of each scaler. Note that this is the
+      # synchronization point across all towers @ CPU.
+      mean_scalers = bingrad_common.average_scalers(tower_scalers)
+      for mscaler in mean_scalers:
+        if mscaler is not None:
+          tf.summary.scalar(mscaler.op.name + '/mean_scaler', mscaler)
+
+      # gradient clipping and binarizing
+      # @ GPUs
+      for i in xrange(FLAGS.num_gpus):
+        with tf.device('/gpu:%d' % i):
+          with tf.name_scope('%s_%d' % (inception.TOWER_NAME, i)) as scope:
+            # Clip and binarize gradients
+            # and keep track of the gradients across all towers.
+            tower_grads[i] = bingrad_common.clip_gradients_by_thresholds(
+              tower_grads[i],mean_scalers)
+
+      for grads in tower_grads:
+        _gradient_summary(grads, 'clipped')
+
+      for i in xrange(FLAGS.num_gpus):
+        with tf.device('/gpu:%d' % i):
+          with tf.name_scope('%s_%d' % (inception.TOWER_NAME, i)) as scope:
+            # Clip and binarize gradients
+            # and keep track of the gradients across all towers.
+            tower_grads[i] = bingrad_common.stochastical_binarize_gradients(
+              tower_grads[i], mean_scalers)
+
+      for grads in tower_grads:
+        _gradient_summary(grads, 'binary',add_sparsity=True)
+
     # We must calculate the mean of each gradient. Note that this is the
-    # synchronization point across all towers.
+    # synchronization point across all towers @ CPU.
     #grads = _average_gradients(tower_grads)
     if len(tower_grads)>1:
       tower_grads = bingrad_common.average_gradients2(tower_grads)
 
-    # Add a summaries for the input processing and global_step.
-    summaries.extend(input_summaries)
 
     # Add a summary to track the learning rate.
-    summaries.append(tf.summary.scalar('learning_rate', lr))
+    tf.summary.scalar('learning_rate', lr)
 
     # Add histograms for gradients.
-    for grad, var in grads:
-      if grad is not None:
-        summaries.append(
-            tf.summary.histogram(var.op.name + '/gradients', grad))
+    for grads in tower_grads:
+      _gradient_summary(grads, 'final')
 
     # Apply the gradients to adjust the shared variables.
+    # @ GPUs
     #apply_gradient_op = opt.apply_gradients(grads, global_step=global_step)
     apply_gradient_op = []
-    for tower_grad in tower_grads:
-        apply_gradient_op.append(opt.apply_gradients(tower_grad, global_step=global_step))
+    #for tower_grad in tower_grads:
+    #    apply_gradient_op.append(opt.apply_gradients(tower_grad, global_step=global_step))
+    for i in xrange(FLAGS.num_gpus):
+      with tf.device('/gpu:%d' % i):
+        with tf.name_scope('%s_%d' % (inception.TOWER_NAME, i)) as scope:
+          apply_gradient_op.append(opt.apply_gradients(tower_grads[i],
+                                          global_step=global_step))
 
     # Add histograms for trainable variables.
-    #for var in tf.trainable_variables():
-    #  summaries.append(tf.summary.histogram(var.op.name, var))
+    for var in tf.trainable_variables():
+      tf.summary.histogram(var.op.name, var)
 
     # Track the moving averages of all trainable variables.
     # Note that we maintain a "double-average" of the BatchNormalization
@@ -338,6 +396,8 @@ def train(dataset):
             var_dic[_var_name] = _var
     saver = tf.train.Saver(var_dic)
 
+    summaries = tf.get_collection(tf.GraphKeys.SUMMARIES)
+
     # Build the summary operation from the last tower summaries.
     summary_op = tf.summary.merge(summaries)
 
@@ -366,10 +426,8 @@ def train(dataset):
     # Start the queue runners.
     tf.train.start_queue_runners(sess=sess)
 
-    #summary_writer = tf.train.SummaryWriter(
     summary_writer = tf.summary.FileWriter(
         FLAGS.train_dir,
-        #graph_def=sess.graph.as_graph_def(add_shapes=True))
         graph=tf.get_default_graph())
 
     for step in range(FLAGS.max_steps):
