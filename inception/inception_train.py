@@ -218,7 +218,7 @@ def train(dataset):
 
     # Decay the learning rate exponentially based on the number of steps.
     lr = tf.train.exponential_decay(FLAGS.initial_learning_rate,
-                                    global_step,
+                                    global_step/FLAGS.num_gpus,
                                     decay_steps,
                                     FLAGS.learning_rate_decay_factor,
                                     staircase=True)
@@ -370,7 +370,7 @@ def train(dataset):
     # global statistics. This is more complicated then need be but we employ
     # this for backward-compatibility with our previous models.
     variable_averages = tf.train.ExponentialMovingAverage(
-        inception.MOVING_AVERAGE_DECAY, global_step)
+        inception.MOVING_AVERAGE_DECAY, global_step/FLAGS.num_gpus)
 
     # Another possiblility is to use tf.slim.get_variables().
     variables_to_average = (tf.trainable_variables() +
