@@ -29,6 +29,7 @@ import tensorflow as tf
 
 from inception import image_processing
 from inception import inception_model as inception
+from inception.slim import slim
 
 
 FLAGS = tf.app.flags.FLAGS
@@ -56,6 +57,10 @@ tf.app.flags.DEFINE_string('device', '/gpu:0',
 
 tf.app.flags.DEFINE_string('tower', '',
                            """Recover model from the tower (tower_0).""")
+tf.app.flags.DEFINE_string('net', 'alexnet',
+                          """The net to train (inception, alexnet, vgg_16, vgg_a).""")
+tf.app.flags.DEFINE_bool('restore_avg_var', True,
+                           """Recover variables from moving average version.""")
 
 def _eval_once(saver, summary_writer, top_1_op, top_5_op, summary_op):
   """Runs Eval once.
@@ -154,26 +159,33 @@ def evaluate(dataset):
 
     # Build a Graph that computes the logits predictions from the
     # inference model.
-    logits, _ = inception.inference(images, num_classes)
+    logits, _ = inception.inference(images, num_classes, net=FLAGS.net)
 
     # Calculate predictions.
     top_1_op = tf.nn.in_top_k(logits, labels, 1)
     top_5_op = tf.nn.in_top_k(logits, labels, 5)
 
-    # Restore the moving average version of the learned variables for eval.
-    variable_averages = tf.train.ExponentialMovingAverage(
+    if FLAGS.restore_avg_var:
+      # Restore the moving average version of the learned variables for eval.
+      variable_averages = tf.train.ExponentialMovingAverage(
         inception.MOVING_AVERAGE_DECAY)
-    variables_to_restore = variable_averages.variables_to_restore()
-
-    if ''==FLAGS.tower:
+      variables_to_restore = variable_averages.variables_to_restore()
       saver = tf.train.Saver(variables_to_restore)
+      if ''!=FLAGS.tower:
+        var_dic = {}
+        for _name, _var in variables_to_restore.iteritems():
+          _var_name = FLAGS.tower + '/' + _name
+          var_dic[_var_name] = _var
+        saver = tf.train.Saver(var_dic)
     else:
-      var_dic = {}
-      _vars = tf.global_variables()
-      for _var in _vars:
-        _var_name = FLAGS.tower + '/' + _var.op.name
-        var_dic[_var_name] = _var
-      saver = tf.train.Saver(var_dic)
+      saver = tf.train.Saver()
+      if ''!=FLAGS.tower:
+        var_dic = {}
+        _vars = tf.global_variables()
+        for _var in _vars:
+          _var_name = FLAGS.tower + '/' + _var.op.name
+          var_dic[_var_name] = _var
+        saver = tf.train.Saver(var_dic)
 
     # Build the summary operation based on the TF collection of Summaries.
     summaries = tf.get_collection(tf.GraphKeys.SUMMARIES)

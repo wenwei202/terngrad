@@ -82,6 +82,8 @@ tf.app.flags.DEFINE_integer('grad_bits', 32,
                             """The number of gradient bits.""")
 tf.app.flags.DEFINE_float('clip_factor', 0.0,
                             """The factor of stddev to clip gradients.""")
+tf.app.flags.DEFINE_integer('save_tower', -1,
+                            """Save the variables in a specific tower. -1 refers all towers""")
 
 # Constants dictating the learning rate schedule.
 RMSPROP_DECAY = 0.9                # Decay term for RMSProp.
@@ -142,8 +144,8 @@ def _tower_loss(images, labels, num_classes, scope, reuse_variables=None):
     loss_name = re.sub('%s_[0-9]*/' % inception.TOWER_NAME, '', l.op.name)
     # Name each loss as '(raw)' and name the moving average version of the loss
     # as the original loss name.
-    tf.summary.scalar(loss_name +' (raw)', l)
-    tf.summary.scalar(loss_name, loss_averages.average(l))
+    tf.summary.scalar(loss_name +'_raw', l)
+    tf.summary.scalar(loss_name + '_avg', loss_averages.average(l))
 
   with tf.control_dependencies([loss_averages_op]):
     total_loss = tf.identity(total_loss)
@@ -261,6 +263,7 @@ def train(dataset):
 
     # Calculate the gradients for each model tower.
     tower_grads = []
+    tower_batchnorm_updates = []
     tower_scalers = []
     reuse_variables = None
     for i in range(FLAGS.num_gpus):
@@ -285,6 +288,7 @@ def train(dataset):
             # other stats from the other towers without significant detriment.
             batchnorm_updates = tf.get_collection(slim.ops.UPDATE_OPS_COLLECTION,
                                                 scope)
+            tower_batchnorm_updates.append(batchnorm_updates)
 
             # Calculate the gradients for the batch of data on this ImageNet
             # tower.
@@ -378,23 +382,29 @@ def train(dataset):
     variables_averages_op = variable_averages.apply(variables_to_average)
 
     # Group all updates to into a single train op.
-    batchnorm_updates_op = tf.group(*batchnorm_updates)
+    #batchnorm_updates_op = tf.group(*batchnorm_updates)
     #train_op = tf.group(apply_gradient_op, variables_averages_op,
     #                    batchnorm_updates_op)
-    train_op = tf.group(batchnorm_updates_op, variables_averages_op,
-                        *apply_gradient_op)
+    batchnorm_updates_op = tf.no_op()
+    for tower_batchnorm_update in tower_batchnorm_updates:
+      batchnorm_updates_op = tf.group(batchnorm_updates_op, *tower_batchnorm_update)
+    apply_gradient_op = tf.group(*apply_gradient_op)
+    train_op = tf.group(apply_gradient_op, variables_averages_op, batchnorm_updates_op)
 
     # Create a saver.
     #saver = tf.train.Saver(tf.all_variables())
-    # Only save the variables in the first tower
-    save_pattern = ('(%s_%d)' % (inception.TOWER_NAME, 0)) + ".*ExponentialMovingAverage"
-    var_dic = {}
-    _vars = tf.global_variables()
-    for _var in _vars:
-        if re.compile(save_pattern).match(_var.op.name):
-            _var_name = re.sub('%s_[0-9]*/' % inception.TOWER_NAME, '', _var.op.name)
-            var_dic[_var_name] = _var
-    saver = tf.train.Saver(var_dic)
+    if FLAGS.save_tower>=0:
+      # Only save the variables in a tower
+      save_pattern = ('(%s_%d)' % (inception.TOWER_NAME, FLAGS.save_tower)) + ".*" #+ ".*ExponentialMovingAverage"
+      var_dic = {}
+      _vars = tf.global_variables()
+      for _var in _vars:
+          if re.compile(save_pattern).match(_var.op.name):
+              _var_name = re.sub('%s_[0-9]*/' % inception.TOWER_NAME, '', _var.op.name)
+              var_dic[_var_name] = _var
+      saver = tf.train.Saver(var_dic)
+    else:
+      saver = tf.train.Saver(tf.global_variables())
 
     summaries = tf.get_collection(tf.GraphKeys.SUMMARIES)
 

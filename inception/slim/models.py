@@ -228,6 +228,7 @@ def alexnet_v2(inputs,
                restore_logits=True,
                seed=1,
                scope='alexnet_v2'):
+  print("Warning: regularization is not added to REGULARIZATION_LOSSES!!!")
   with slim.arg_scope(_alexnet_v2_arg_scope(seed=seed)):
     return _alexnet_v2(inputs,
                dropout_keep_prob=dropout_keep_prob,
@@ -313,6 +314,7 @@ def vgg_16(inputs,
             restore_logits=True,
            seed=1,
            scope='vgg_16'):
+  print ("Warning: regularization is not added to REGULARIZATION_LOSSES!!!")
   with slim.arg_scope(_vgg_arg_scope(seed=seed)):
     return _vgg_16(inputs,
             dropout_keep_prob=dropout_keep_prob,
@@ -382,6 +384,7 @@ def vgg_a(inputs,
             restore_logits=True,
            seed=1,
            scope='vgg_a'):
+  print("Warning: regularization is not added to REGULARIZATION_LOSSES!!!")
   with slim.arg_scope(_vgg_arg_scope(seed=seed)):
     return _vgg_a(inputs,
             dropout_keep_prob=dropout_keep_prob,
