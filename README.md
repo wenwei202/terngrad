@@ -1,3 +1,57 @@
+
+This is a modified copy of `./inception`
+
+# Download and generate cifar-10 TFRecord
+
+```
+cd ./slim
+export DATA_PATH="~/dataset/cifar10-data/" # the directory of database
+python download_and_convert_data.py --dataset_name cifar10 --dataset_dir ${DATA_PATH}
+cd ${DATA_PATH}
+mv cifar10_test.tfrecord cifar10_validation.tfrecord
+```
+
+# Build and run training on cifar-10
+```
+cd ./bingrad
+bazel build inception/cifar10_train
+
+bazel-bin/inception/cifar10_train \
+--optimizer momentum \
+--net cifar10_alexnet \
+--image_size 32 \
+--num_gpus 2 \
+--batch_size 128 \
+--train_dir /tmp/cifar10_train \
+--data_dir ~/dataset/cifar10-data/
+
+```
+
+# Build and run ImageNet
+
+```
+bazel-bin/inception/imagenet_train \
+--optimizer momentum \
+--net alexnet \
+--image_size 224 \
+--num_gpus 2 \
+--batch_size 256 \
+--train_dir /tmp/imagenet_train \
+--data_dir ~/dataset/imagenet-data/
+
+
+bazel-bin/inception/imagenet_eval \
+--data_dir ~/dataset/imagenet-data/ \
+--net alexnet \
+--image_size 224 \
+--batch_size 50 \
+--checkpoint_dir /tmp/imagenet_train  \
+--restore_avg_var True \
+--tower tower_0
+
+```
+
+
 # Inception in TensorFlow
 
 [ImageNet](http://www.image-net.org/) is a common academic data set in machine
