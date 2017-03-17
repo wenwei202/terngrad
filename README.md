@@ -1,5 +1,7 @@
 
-This is a modified copy of `./inception`
+This is a modified copy of `./inception`. 
+
+**In this workspace, `inception` refers to all types of neural networks in a general way.**
 
 # Download and generate cifar-10 TFRecord
 
@@ -17,7 +19,9 @@ cd ./bingrad
 bazel build inception/cifar10_train
 
 bazel-bin/inception/cifar10_train \
---optimizer momentum \
+--optimizer adam \
+--initial_learning_rate 0.0002 \
+--max_steps 200000 \
 --net cifar10_alexnet \
 --image_size 32 \
 --num_gpus 2 \
