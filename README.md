@@ -29,6 +29,17 @@ bazel-bin/inception/cifar10_train \
 --train_dir /tmp/cifar10_train \
 --data_dir ~/dataset/cifar10-data/
 
+bazel build inception/cifar10_eval
+
+bazel-bin/inception/cifar10_eval \
+--data_dir ~/dataset/cifar10-data/ \
+--net cifar10_alexnet \
+--image_size 32 \
+--batch_size 50 \
+--checkpoint_dir /tmp/cifar10_train  \
+--restore_avg_var True \
+--tower tower_0
+
 ```
 
 # Build and run ImageNet
