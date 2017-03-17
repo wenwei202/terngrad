@@ -21,6 +21,7 @@ bazel build inception/cifar10_train
 bazel-bin/inception/cifar10_train \
 --optimizer adam \
 --initial_learning_rate 0.0002 \
+--num_epochs_per_decay 256 \
 --max_steps 200000 \
 --net cifar10_alexnet \
 --image_size 32 \
