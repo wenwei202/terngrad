@@ -41,7 +41,8 @@ bazel-bin/inception/cifar10_eval \
 --batch_size 50 \
 --checkpoint_dir /tmp/cifar10_train  \
 --restore_avg_var True \
---tower tower_0
+--tower tower_0 \
+--eval_interval_secs 300
 
 ```
 
