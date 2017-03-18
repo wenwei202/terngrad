@@ -24,7 +24,7 @@ bazel-bin/inception/cifar10_train \
 --num_epochs_per_decay 256 \
 --max_steps 200000 \
 --net cifar10_alexnet \
---image_size 32 \
+--image_size 24 \
 --num_gpus 2 \
 --batch_size 128 \
 --train_dir /tmp/cifar10_train \
@@ -37,7 +37,7 @@ bazel-bin/inception/cifar10_eval \
 --data_dir ~/dataset/cifar10-data/ \
 --dataset_name cifar10 \
 --net cifar10_alexnet \
---image_size 32 \
+--image_size 24 \
 --batch_size 50 \
 --checkpoint_dir /tmp/cifar10_train  \
 --restore_avg_var True \
