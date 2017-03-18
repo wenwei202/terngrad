@@ -28,14 +28,12 @@ bazel-bin/inception/cifar10_train \
 --num_gpus 2 \
 --batch_size 128 \
 --train_dir /tmp/cifar10_train \
---data_dir ~/dataset/cifar10-data/ \
---dataset_name cifar10
+--data_dir ~/dataset/cifar10-data/ 
 
 bazel build inception/cifar10_eval
 
 bazel-bin/inception/cifar10_eval \
 --data_dir ~/dataset/cifar10-data/ \
---dataset_name cifar10 \
 --net cifar10_alexnet \
 --image_size 24 \
 --batch_size 50 \
