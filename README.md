@@ -13,7 +13,7 @@ cd ${DATA_PATH}
 mv cifar10_test.tfrecord cifar10_validation.tfrecord
 ```
 
-# Build and run training on cifar-10
+# Build and run evaluating/training on cifar-10
 ```
 cd ./bingrad
 bazel build inception/cifar10_train
@@ -28,12 +28,14 @@ bazel-bin/inception/cifar10_train \
 --num_gpus 2 \
 --batch_size 128 \
 --train_dir /tmp/cifar10_train \
---data_dir ~/dataset/cifar10-data/
+--data_dir ~/dataset/cifar10-data/ \
+--dataset_name cifar10
 
 bazel build inception/cifar10_eval
 
 bazel-bin/inception/cifar10_eval \
 --data_dir ~/dataset/cifar10-data/ \
+--dataset_name cifar10 \
 --net cifar10_alexnet \
 --image_size 32 \
 --batch_size 50 \
