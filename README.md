@@ -13,7 +13,7 @@ cd ${DATA_PATH}
 mv cifar10_test.tfrecord cifar10_validation.tfrecord
 ```
 
-# Build and run training on cifar-10
+# Build and run evaluating/training on cifar-10
 ```
 cd ./bingrad
 bazel build inception/cifar10_train
@@ -21,24 +21,27 @@ bazel build inception/cifar10_train
 bazel-bin/inception/cifar10_train \
 --optimizer adam \
 --initial_learning_rate 0.0002 \
+--num_epochs_per_decay 256 \
 --max_steps 200000 \
 --net cifar10_alexnet \
---image_size 32 \
+--image_size 24 \
 --num_gpus 2 \
 --batch_size 128 \
 --train_dir /tmp/cifar10_train \
---data_dir ~/dataset/cifar10-data/
+--data_dir ~/dataset/cifar10-data/ 
 
 bazel build inception/cifar10_eval
 
 bazel-bin/inception/cifar10_eval \
 --data_dir ~/dataset/cifar10-data/ \
 --net cifar10_alexnet \
---image_size 32 \
+--image_size 24 \
 --batch_size 50 \
 --checkpoint_dir /tmp/cifar10_train  \
 --restore_avg_var True \
---tower tower_0
+--tower tower_0 \
+--eval_interval_secs 300 \
+--eval_dir /tmp/cifar10_eval
 
 ```
 
@@ -62,7 +65,8 @@ bazel-bin/inception/imagenet_eval \
 --batch_size 50 \
 --checkpoint_dir /tmp/imagenet_train  \
 --restore_avg_var True \
---tower tower_0
+--tower tower_0 \
+--eval_dir /tmp/imagenet_eval
 
 ```
 
