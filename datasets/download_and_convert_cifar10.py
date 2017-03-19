@@ -99,7 +99,7 @@ def _add_to_tfrecord(filename, tfrecord_writer, offset=0):
                               feed_dict={image_placeholder: image})
 
         example = dataset_utils.image_to_tfexample(
-            png_string, 'png', _IMAGE_SIZE, _IMAGE_SIZE, label)
+            png_string, 'png', _IMAGE_SIZE, _IMAGE_SIZE, label, _CLASS_NAMES[label])
         tfrecord_writer.write(example.SerializeToString())
 
   return offset + num_images

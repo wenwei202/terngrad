@@ -40,6 +40,11 @@ def int64_feature(values):
     values = [values]
   return tf.train.Feature(int64_list=tf.train.Int64List(value=values))
 
+def float_feature(value):
+  """Wrapper for inserting float features into Example proto."""
+  if not isinstance(value, list):
+    value = [value]
+  return tf.train.Feature(float_list=tf.train.FloatList(value=value))
 
 def bytes_feature(values):
   """Returns a TF-Feature of bytes.
@@ -53,13 +58,27 @@ def bytes_feature(values):
   return tf.train.Feature(bytes_list=tf.train.BytesList(value=[values]))
 
 
-def image_to_tfexample(image_data, image_format, height, width, class_id):
+def image_to_tfexample(image_data, image_format, height, width, class_id, human_label=''):
+  colorspace = 'RGB'
+  channels = 3
+  xmin = []
+  ymin = []
+  xmax = []
+  ymax = []
   return tf.train.Example(features=tf.train.Features(feature={
       'image/encoded': bytes_feature(image_data),
       'image/format': bytes_feature(image_format),
       'image/class/label': int64_feature(class_id),
       'image/height': int64_feature(height),
       'image/width': int64_feature(width),
+      'image/colorspace': bytes_feature(colorspace),
+      'image/channels': int64_feature(channels),
+      'image/object/bbox/xmin': float_feature(xmin),
+      'image/object/bbox/xmax': float_feature(xmax),
+      'image/object/bbox/ymin': float_feature(ymin),
+      'image/object/bbox/ymax': float_feature(ymax),
+      'image/class/text': bytes_feature(human_label),
+
   }))
 
 
