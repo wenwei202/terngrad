@@ -28,18 +28,18 @@ from __future__ import print_function
 import tensorflow as tf
 
 from inception import inception_eval
-from inception.imagenet_data import ImagenetData
+from inception.cifar10_data import Cifar10Data
 
 FLAGS = tf.app.flags.FLAGS
 
 
 def main(unused_argv=None):
-  dataset = ImagenetData(subset=FLAGS.subset)
+  dataset = Cifar10Data(subset=FLAGS.subset)
   assert dataset.data_files()
   if tf.gfile.Exists(FLAGS.eval_dir):
     tf.gfile.DeleteRecursively(FLAGS.eval_dir)
   tf.gfile.MakeDirs(FLAGS.eval_dir)
-  FLAGS.dataset_name = 'imagenet'
+  FLAGS.dataset_name = 'cifar10'
   inception_eval.evaluate(dataset)
 
 

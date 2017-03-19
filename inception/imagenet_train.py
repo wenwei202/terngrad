@@ -34,6 +34,7 @@ def main(_):
   if tf.gfile.Exists(FLAGS.train_dir):
     tf.gfile.DeleteRecursively(FLAGS.train_dir)
   tf.gfile.MakeDirs(FLAGS.train_dir)
+  FLAGS.dataset_name = 'imagenet'
   inception_train.train(dataset)
 
 

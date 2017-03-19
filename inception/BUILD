@@ -37,6 +37,16 @@ py_library(
 )
 
 py_library(
+    name = "cifar10_data",
+    srcs = [
+        "cifar10_data.py",
+    ],
+    deps = [
+        ":dataset",
+    ],
+)
+
+py_library(
     name = "flowers_data",
     srcs = [
         "flowers_data.py",
@@ -89,6 +99,17 @@ py_binary(
 )
 
 py_binary(
+    name = "cifar10_eval",
+    srcs = [
+        "cifar10_eval.py",
+    ],
+    deps = [
+        ":cifar10_data",
+        ":inception_eval",
+    ],
+)
+
+py_binary(
     name = "flowers_eval",
     srcs = [
         "flowers_eval.py",
@@ -118,6 +139,17 @@ py_binary(
     ],
     deps = [
         ":imagenet_data",
+        ":inception_train",
+    ],
+)
+
+py_binary(
+    name = "cifar10_train",
+    srcs = [
+        "cifar10_train.py",
+    ],
+    deps = [
+        ":cifar10_data",
         ":inception_train",
     ],
 )

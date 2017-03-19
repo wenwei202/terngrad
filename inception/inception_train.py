@@ -34,7 +34,7 @@ import inception.bingrad_common as bingrad_common
 
 FLAGS = tf.app.flags.FLAGS
 
-tf.app.flags.DEFINE_string('train_dir', '/tmp/imagenet_train',
+tf.app.flags.DEFINE_string('train_dir', '/tmp/dataset_train',
                            """Directory where to write event logs """
                            """and checkpoint.""")
 tf.app.flags.DEFINE_integer('max_steps',370000,
@@ -219,7 +219,10 @@ def train(dataset):
     decay_steps = int(num_batches_per_epoch * FLAGS.num_epochs_per_decay)
 
     # Decay the learning rate exponentially based on the number of steps.
-    lr = tf.train.exponential_decay(FLAGS.initial_learning_rate,
+    if ('adam' == FLAGS.optimizer):
+      lr = FLAGS.initial_learning_rate
+    else:
+      lr = tf.train.exponential_decay(FLAGS.initial_learning_rate,
                                     global_step/FLAGS.num_gpus,
                                     decay_steps,
                                     FLAGS.learning_rate_decay_factor,
@@ -255,7 +258,10 @@ def train(dataset):
 
     # Number of classes in the Dataset label set plus 1.
     # Label 0 is reserved for an (unused) background class.
-    num_classes = dataset.num_classes() + 1
+    if FLAGS.dataset_name == 'imagenet':
+      num_classes = dataset.num_classes() + 1
+    else:
+      num_classes = dataset.num_classes()
 
     # Split the batch of images and labels for towers.
     images_splits = tf.split(images, FLAGS.num_gpus, 0)

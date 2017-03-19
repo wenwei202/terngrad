@@ -70,6 +70,8 @@ tf.app.flags.DEFINE_integer('input_queue_memory_factor', 16,
                             """4, 2 or 1, if host memory is constrained. See """
                             """comments in code for more details.""")
 
+tf.app.flags.DEFINE_string('dataset_name','imagenet',
+                           """Dataset to train on (imagenet or cifar10).""")
 
 def inputs(dataset, batch_size=None, num_preprocess_threads=None):
   """Generate batches of ImageNet images for evaluation.
@@ -159,6 +161,27 @@ def decode_jpeg(image_buffer, scope=None):
     image = tf.image.convert_image_dtype(image, dtype=tf.float32)
     return image
 
+def decode_png(image_buffer, scope=None):
+  """Decode a JPEG string into one 3-D float image Tensor.
+
+  Args:
+    image_buffer: scalar string Tensor.
+    scope: Optional scope for op_scope.
+  Returns:
+    3-D float Tensor with values ranging from [0, 1).
+  """
+  with tf.op_scope([image_buffer], scope, 'decode_jpeg'):
+    # Decode the string as an RGB JPEG.
+    # Note that the resulting image contains an unknown height and width
+    # that is set dynamically by decode_jpeg. In other words, the height
+    # and width of image is unknown at compile-time.
+    image = tf.image.decode_png(image_buffer, channels=3)
+
+    # After this point, all image pixels reside in [0,1)
+    # until the very end, when they're rescaled to (-1, 1).  The various
+    # adjust_* ops all require this range for dtype float.
+    image = tf.image.convert_image_dtype(image, dtype=tf.float32)
+    return image
 
 def distort_color(image, thread_id=0, scope=None):
   """Distort the color of the image.
@@ -221,7 +244,6 @@ def distort_image(image, height, width, bbox, thread_id=0, scope=None):
     if not thread_id:
       image_with_box = tf.image.draw_bounding_boxes(tf.expand_dims(image, 0),
                                                     bbox)
-      #tf.image_summary('image_with_bounding_boxes', image_with_box)
       tf.summary.image('image_with_bounding_boxes', image_with_box)
 
   # A large fraction of image datasets contain a human-annotated bounding
@@ -272,11 +294,56 @@ def distort_image(image, height, width, bbox, thread_id=0, scope=None):
     distorted_image = distort_color(distorted_image, thread_id)
 
     if not thread_id:
-      #tf.image_summary('final_distorted_image',
       tf.summary.image('final_distorted_image',
                        tf.expand_dims(distorted_image, 0))
     return distorted_image
 
+def distort_cifar10_image(image, height, width, thread_id=0, scope=None):
+  """Distort one image for training a network.
+
+  Distorting images provides a useful technique for augmenting the data
+  set during training in order to make the network invariant to aspects
+  of the image that do not effect the label.
+
+  Args:
+    image: 3-D float Tensor of image
+    height: integer
+    width: integer
+    thread_id: integer indicating the preprocessing thread.
+    scope: Optional scope for op_scope.
+  Returns:
+    3-D float Tensor of distorted image used for training.
+  """
+  with tf.name_scope(scope, 'distort_image', [image, height, width]):
+    # Each bounding box has shape [1, num_boxes, box coords] and
+    # the coordinates are ordered [ymin, xmin, ymax, xmax].
+
+    # Display the image in the first thread only.
+    if not thread_id:
+      tf.summary.image('original_image', tf.expand_dims(image, 0))
+
+    distorted_image = tf.random_crop(image, [height, width, 3])
+    if not thread_id:
+      tf.summary.image('cropped_image',
+                       tf.expand_dims(distorted_image, 0))
+
+    # Randomly flip the image horizontally.
+    distorted_image = tf.image.random_flip_left_right(distorted_image)
+
+    # Because these operations are not commutative, consider randomizing
+    # the order their operation.
+    distorted_image = tf.image.random_brightness(distorted_image,
+                                                 max_delta=63./255.)
+    distorted_image = tf.image.random_contrast(distorted_image,
+                                               lower=0.2, upper=1.8)
+
+    # The random_* ops do not necessarily clamp.
+    distorted_image = tf.clip_by_value(distorted_image, 0.0, 1.0)
+
+    if not thread_id:
+      tf.summary.image('final_distorted_image',
+                       tf.expand_dims(distorted_image, 0))
+    return distorted_image
 
 def eval_image(image, height, width, scope=None):
   """Prepare one image for evaluation.
@@ -301,8 +368,24 @@ def eval_image(image, height, width, scope=None):
     image = tf.squeeze(image, [0])
     return image
 
+def eval_cifar10_image(image, height, width, scope=None):
+  """Prepare one image for evaluation.
 
-def image_preprocessing(image_buffer, bbox, train, thread_id=0):
+  Args:
+    image: 3-D float Tensor
+    height: integer
+    width: integer
+    scope: Optional scope for op_scope.
+  Returns:
+    3-D float Tensor of prepared image.
+  """
+  with tf.name_scope(scope, 'eval_image', [image, height, width]):
+    # Image processing for evaluation.
+    # Crop the central [height, width] of the image.
+    image = tf.image.resize_image_with_crop_or_pad(image, height, width)
+    return image
+
+def image_preprocessing(image_buffer, bbox, train, thread_id=0, image_format='JPEG'):
   """Decode and preprocess one image for evaluation or training.
 
   Args:
@@ -322,18 +405,29 @@ def image_preprocessing(image_buffer, bbox, train, thread_id=0):
   if bbox is None:
     raise ValueError('Please supply a bounding box.')
 
-  image = decode_jpeg(image_buffer)
+  # image = decode_jpeg(image_buffer)
+  image = tf.cond(tf.equal('png', image_format),
+                  lambda: decode_png(image_buffer),
+                  lambda: decode_jpeg(image_buffer))
   height = FLAGS.image_size
   width = FLAGS.image_size
 
   if train:
-    image = distort_image(image, height, width, bbox, thread_id)
+    if FLAGS.dataset_name == 'cifar10':
+      image = distort_cifar10_image(image, height, width, thread_id)
+    elif FLAGS.dataset_name == 'imagenet':
+      image = distort_image(image, height, width, bbox, thread_id)
+    else:
+      raise ValueError("Wrong dataset_name!")
   else:
-    image = eval_image(image, height, width)
+    if FLAGS.dataset_name == 'cifar10':
+      image = eval_cifar10_image(image, height, width)
+    elif FLAGS.dataset_name == 'imagenet':
+      image = eval_image(image, height, width)
+    else:
+      raise ValueError("Wrong dataset_name!")
 
   # Finally, rescale to [-1,1] instead of [0, 1)
-  #image = tf.sub(image, 0.5)
-  #image = tf.mul(image, 2.0)
   image = tf.subtract(image, 0.5)
   image = tf.multiply(image, 2.0)
   return image
@@ -382,6 +476,8 @@ def parse_example_proto(example_serialized):
                                               default_value=-1),
       'image/class/text': tf.FixedLenFeature([], dtype=tf.string,
                                              default_value=''),
+      'image/format': tf.FixedLenFeature([], dtype=tf.string,
+                                             default_value=''),
   }
   sparse_float32 = tf.VarLenFeature(dtype=tf.float32)
   # Sparse features in Example proto.
@@ -408,7 +504,7 @@ def parse_example_proto(example_serialized):
   bbox = tf.expand_dims(bbox, 0)
   bbox = tf.transpose(bbox, [0, 2, 1])
 
-  return features['image/encoded'], label, bbox, features['image/class/text']
+  return features['image/encoded'], label, bbox, features['image/class/text'], features['image/format']
 
 
 def batch_inputs(dataset, batch_size, train, num_preprocess_threads=None,
@@ -492,10 +588,11 @@ def batch_inputs(dataset, batch_size, train, num_preprocess_threads=None,
 
     images_and_labels = []
     for thread_id in range(num_preprocess_threads):
+
       # Parse a serialized Example proto to extract the image and metadata.
-      image_buffer, label_index, bbox, _ = parse_example_proto(
+      image_buffer, label_index, bbox, _, image_format = parse_example_proto(
           example_serialized)
-      image = image_preprocessing(image_buffer, bbox, train, thread_id)
+      image = image_preprocessing(image_buffer, bbox, train, thread_id, image_format=image_format)
       images_and_labels.append([image, label_index])
 
     images, label_index_batch = tf.train.batch_join(
@@ -512,7 +609,6 @@ def batch_inputs(dataset, batch_size, train, num_preprocess_threads=None,
     images = tf.reshape(images, shape=[batch_size, height, width, depth])
 
     # Display the training images in the visualizer.
-    #tf.image_summary('images', images)
     tf.summary.image('images', images)
 
     return images, tf.reshape(label_index_batch, [batch_size])

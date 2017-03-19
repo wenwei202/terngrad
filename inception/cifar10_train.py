@@ -12,35 +12,30 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-"""A binary to evaluate Inception on the flowers data set.
-
-Note that using the supplied pre-trained inception checkpoint, the eval should
-achieve:
-  precision @ 1 = 0.7874 recall @ 5 = 0.9436 [50000 examples]
-
-See the README.md for more details.
+"""A binary to train Inception on the ImageNet data set.
 """
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
 
+
 import tensorflow as tf
 
-from inception import inception_eval
-from inception.imagenet_data import ImagenetData
+from inception import inception_train
+from inception.cifar10_data import Cifar10Data
 
 FLAGS = tf.app.flags.FLAGS
 
 
-def main(unused_argv=None):
-  dataset = ImagenetData(subset=FLAGS.subset)
+def main(_):
+  dataset = Cifar10Data(subset=FLAGS.subset)
   assert dataset.data_files()
-  if tf.gfile.Exists(FLAGS.eval_dir):
-    tf.gfile.DeleteRecursively(FLAGS.eval_dir)
-  tf.gfile.MakeDirs(FLAGS.eval_dir)
-  FLAGS.dataset_name = 'imagenet'
-  inception_eval.evaluate(dataset)
+  if tf.gfile.Exists(FLAGS.train_dir):
+    tf.gfile.DeleteRecursively(FLAGS.train_dir)
+  tf.gfile.MakeDirs(FLAGS.train_dir)
+  FLAGS.dataset_name = 'cifar10'
+  inception_train.train(dataset)
 
 
 if __name__ == '__main__':

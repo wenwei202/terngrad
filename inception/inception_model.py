@@ -73,6 +73,8 @@ def inference(images, num_classes, net='alexnet', for_training=False, restore_lo
       # epsilon to prevent 0s in variance.
       'epsilon': 0.001,
   }
+  if batch_norm_params:
+    print("Info: batch_norm_params is added on conv")
   # Set weight_decay for weights in Conv and FC layers.
   with slim.arg_scope([slim.ops.conv2d, slim.ops.fc], weight_decay=0.00004, seed=1):
     with slim.arg_scope([slim.ops.conv2d],

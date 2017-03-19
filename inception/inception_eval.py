@@ -34,9 +34,9 @@ from inception.slim import slim
 
 FLAGS = tf.app.flags.FLAGS
 
-tf.app.flags.DEFINE_string('eval_dir', '/tmp/imagenet_eval',
+tf.app.flags.DEFINE_string('eval_dir', '/tmp/dataset_eval',
                            """Directory where to write event logs.""")
-tf.app.flags.DEFINE_string('checkpoint_dir', '/tmp/imagenet_train',
+tf.app.flags.DEFINE_string('checkpoint_dir', '/tmp/dataset_train',
                            """Directory where to read model checkpoints.""")
 
 # Flags governing the frequency of the eval.
@@ -155,7 +155,10 @@ def evaluate(dataset):
 
     # Number of classes in the Dataset label set plus 1.
     # Label 0 is reserved for an (unused) background class.
-    num_classes = dataset.num_classes() + 1
+    if FLAGS.dataset_name == 'imagenet':
+      num_classes = dataset.num_classes() + 1
+    else:
+      num_classes = dataset.num_classes()
 
     # Build a Graph that computes the logits predictions from the
     # inference model.
