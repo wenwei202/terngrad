@@ -26,10 +26,10 @@ import re
 
 import numpy as np
 import tensorflow as tf
+import inception.bingrad_common as bingrad_common
 
 from inception import image_processing
 from inception import inception_model as inception
-from inception.slim import slim
 
 
 FLAGS = tf.app.flags.FLAGS
@@ -55,10 +55,8 @@ tf.app.flags.DEFINE_string('subset', 'validation',
 tf.app.flags.DEFINE_string('device', '/gpu:0',
                            """Device to run eval.""")
 
-tf.app.flags.DEFINE_string('tower', '',
-                           """Recover model from the tower (tower_0).""")
-tf.app.flags.DEFINE_string('net', 'alexnet',
-                          """The net to train (inception, alexnet, vgg_16, vgg_a).""")
+tf.app.flags.DEFINE_integer('tower', -1,
+                           """Recover model from the specified tower/gpu (-1 for cpu).""")
 tf.app.flags.DEFINE_bool('restore_avg_var', True,
                            """Recover variables from moving average version.""")
 
@@ -75,6 +73,7 @@ def _eval_once(saver, summary_writer, top_1_op, top_5_op, summary_op):
   config = tf.ConfigProto()
   config.allow_soft_placement = True
   config.gpu_options.allow_growth = True
+  final_step = False
   with tf.Session(config=config) as sess:
     ckpt = tf.train.get_checkpoint_state(FLAGS.checkpoint_dir)
     if ckpt and ckpt.model_checkpoint_path:
@@ -92,6 +91,8 @@ def _eval_once(saver, summary_writer, top_1_op, top_5_op, summary_op):
       global_step = ckpt.model_checkpoint_path.split('/')[-1].split('-')[-1]
       print('Succesfully loaded model from %s at step=%s.' %
             (ckpt.model_checkpoint_path, global_step))
+      if int(global_step) + 1 >= FLAGS.max_steps:
+        final_step = True
     else:
       print('No checkpoint file found')
       return
@@ -144,6 +145,9 @@ def _eval_once(saver, summary_writer, top_1_op, top_5_op, summary_op):
 
     coord.request_stop()
     coord.join(threads, stop_grace_period_secs=10)
+    if final_step:
+      print('The final step is evaluated. Exit!')
+      exit()
 
 
 def evaluate(dataset):
@@ -174,19 +178,19 @@ def evaluate(dataset):
         inception.MOVING_AVERAGE_DECAY)
       variables_to_restore = variable_averages.variables_to_restore()
       saver = tf.train.Saver(variables_to_restore)
-      if ''!=FLAGS.tower:
+      if FLAGS.tower>=0:
         var_dic = {}
         for _name, _var in variables_to_restore.iteritems():
-          _var_name = FLAGS.tower + '/' + _name
+          _var_name = '%s_%d' % (inception.TOWER_NAME, FLAGS.tower) + '/' + _name
           var_dic[_var_name] = _var
         saver = tf.train.Saver(var_dic)
     else:
       saver = tf.train.Saver()
-      if ''!=FLAGS.tower:
+      if FLAGS.tower>=0:
         var_dic = {}
         _vars = tf.global_variables()
         for _var in _vars:
-          _var_name = FLAGS.tower + '/' + _var.op.name
+          _var_name = '%s_%d' % (inception.TOWER_NAME, FLAGS.tower) + '/' + _var.op.name
           var_dic[_var_name] = _var
         saver = tf.train.Saver(var_dic)
 

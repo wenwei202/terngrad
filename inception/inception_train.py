@@ -37,8 +37,6 @@ FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string('train_dir', '/tmp/dataset_train',
                            """Directory where to write event logs """
                            """and checkpoint.""")
-tf.app.flags.DEFINE_integer('max_steps',370000,
-                            """Number of batches to run.""")
 tf.app.flags.DEFINE_string('subset', 'train',
                            """Either 'train' or 'validation'.""")
 
@@ -56,8 +54,6 @@ tf.app.flags.DEFINE_boolean('fine_tune', False,
 tf.app.flags.DEFINE_string('pretrained_model_checkpoint_path', '',
                            """If specified, restore this pretrained model """
                            """before beginning any training.""")
-tf.app.flags.DEFINE_string('net', 'alexnet',
-                          """The net to train (inception, alexnet, vgg_16, vgg_a).""")
 tf.app.flags.DEFINE_string('optimizer', 'momentum',
                           """The optimizer of SGD (momentum, adam, gd, rmsprop).""")
 # **IMPORTANT**
@@ -123,7 +119,7 @@ def _tower_loss(images, labels, num_classes, scope, reuse_variables=None):
   # Build the portion of the Graph calculating the losses. Note that we will
   # assemble the total_loss using a custom function below.
   split_batch_size = images.get_shape().as_list()[0]
-  inception.loss(logits, labels, batch_size=split_batch_size, aux_logits=('inception'==FLAGS.net))
+  inception.loss(logits, labels, batch_size=split_batch_size, aux_logits=('inception_v3'==FLAGS.net))
 
   # Assemble all of the losses for the current tower only.
   losses = tf.get_collection(slim.losses.LOSSES_COLLECTION, scope)
@@ -133,22 +129,22 @@ def _tower_loss(images, labels, num_classes, scope, reuse_variables=None):
   total_loss = tf.add_n(losses + regularization_losses, name='total_loss')
 
   # Compute the moving average of all individual losses and the total loss.
-  loss_averages = tf.train.ExponentialMovingAverage(0.9, name='avg')
-  loss_averages_op = loss_averages.apply(losses + [total_loss])
+  # loss_averages = tf.train.ExponentialMovingAverage(0.9, name='avg')
+  # loss_averages_op = loss_averages.apply(losses + [total_loss])
 
   # Attach a scalar summmary to all individual losses and the total loss; do the
   # same for the averaged version of the losses.
-  for l in losses + [total_loss]:
+  for l in (losses + regularization_losses) + [total_loss] :
     # Remove 'tower_[0-9]/' from the name in case this is a multi-GPU training
     # session. This helps the clarity of presentation on TensorBoard.
     loss_name = re.sub('%s_[0-9]*/' % inception.TOWER_NAME, '', l.op.name)
     # Name each loss as '(raw)' and name the moving average version of the loss
     # as the original loss name.
     tf.summary.scalar(loss_name +'_raw', l)
-    tf.summary.scalar(loss_name + '_avg', loss_averages.average(l))
+    #tf.summary.scalar(loss_name + '_avg', loss_averages.average(l))
 
-  with tf.control_dependencies([loss_averages_op]):
-    total_loss = tf.identity(total_loss)
+  # with tf.control_dependencies([loss_averages_op]):
+  #   total_loss = tf.identity(total_loss)
   return total_loss
 
 
@@ -207,6 +203,7 @@ def _gradient_summary(grad_vars, name="", add_sparsity=False):
 def train(dataset):
   """Train on dataset for a number of steps."""
   with tf.Graph().as_default(), tf.device('/cpu:0'):
+    tf.set_random_seed(FLAGS.seed)
     # Create a variable to count the number of train() calls. This equals the
     # number of batches processed * FLAGS.num_gpus.
     global_step = tf.get_variable(

@@ -479,7 +479,7 @@ def cifar10_alexnet(inputs,
 
 
             end_points['pool2'] = ops.flatten(end_points['pool2'], scope='flatten')
-            end_points['fc3'] = ops.fc(end_points['pool2'], 384, stddev=0.04, weight_decay=0.004, bias=0,
+            end_points['fc3'] = ops.fc(end_points['pool2'], 384, stddev=0.04, weight_decay=0.004, bias=0.1,
                                        seed = seed +3, scope='fc3')
             net = ops.fc(end_points['fc3'], 192, stddev=0.04, weight_decay=0.004, bias=0.1,
                          seed=seed + 4, scope='fc4')

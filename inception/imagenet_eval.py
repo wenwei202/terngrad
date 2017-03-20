@@ -40,6 +40,7 @@ def main(unused_argv=None):
     tf.gfile.DeleteRecursively(FLAGS.eval_dir)
   tf.gfile.MakeDirs(FLAGS.eval_dir)
   FLAGS.dataset_name = 'imagenet'
+  FLAGS.num_examples = 50000
   inception_eval.evaluate(dataset)
 
 

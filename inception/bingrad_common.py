@@ -19,7 +19,10 @@ from __future__ import print_function
 
 import tensorflow as tf
 
-WORKSPACE_PATH = '/home/wew57/dataset/'
+tf.app.flags.DEFINE_integer('max_steps',370000,
+                            """Number of batches to run.""")
+tf.app.flags.DEFINE_string('net', 'alexnet',
+                          """The net to train (inception_v3, alexnet, vgg_16, vgg_a).""")
 
 def clip_gradients_by_stddev(grads_and_vars, clip_factor = 2.5):
     """ Clip gradients to [-clip_factor*stddev, clip_factor*stddev]."""

@@ -338,11 +338,16 @@ def distort_cifar10_image(image, height, width, thread_id=0, scope=None):
                                                lower=0.2, upper=1.8)
 
     # The random_* ops do not necessarily clamp.
-    distorted_image = tf.clip_by_value(distorted_image, 0.0, 1.0)
+    # distorted_image = tf.clip_by_value(distorted_image, 0.0, 1.0)
 
     if not thread_id:
       tf.summary.image('final_distorted_image',
                        tf.expand_dims(distorted_image, 0))
+
+    # Subtract off the mean and divide by the variance of the pixels.
+    distorted_image = tf.image.per_image_standardization(distorted_image)
+    distorted_image.set_shape([height, width, 3])
+
     return distorted_image
 
 def eval_image(image, height, width, scope=None):
@@ -383,6 +388,11 @@ def eval_cifar10_image(image, height, width, scope=None):
     # Image processing for evaluation.
     # Crop the central [height, width] of the image.
     image = tf.image.resize_image_with_crop_or_pad(image, height, width)
+
+    # Subtract off the mean and divide by the variance of the pixels.
+    image = tf.image.per_image_standardization(image)
+    image.set_shape([height, width, 3])
+
     return image
 
 def image_preprocessing(image_buffer, bbox, train, thread_id=0, image_format='JPEG'):
@@ -428,8 +438,9 @@ def image_preprocessing(image_buffer, bbox, train, thread_id=0, image_format='JP
       raise ValueError("Wrong dataset_name!")
 
   # Finally, rescale to [-1,1] instead of [0, 1)
-  image = tf.subtract(image, 0.5)
-  image = tf.multiply(image, 2.0)
+  if 'cifar10' != FLAGS.dataset_name:
+    image = tf.subtract(image, 0.5)
+    image = tf.multiply(image, 2.0)
   return image
 
 

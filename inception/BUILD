@@ -126,6 +126,7 @@ py_library(
         "inception_eval.py",
     ],
     deps = [
+        ":bingrad_common",
         ":image_processing",
         ":inception",
         ":models",

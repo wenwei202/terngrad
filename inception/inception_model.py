@@ -32,6 +32,8 @@ from inception.slim import slim
 
 FLAGS = tf.app.flags.FLAGS
 
+tf.app.flags.DEFINE_integer('seed', 1,
+                            """The same seed across all towers.""")
 
 # If a model is trained using multiple GPUs, prefix all Op names with tower_name
 # to differentiate the operations. Note that this prefix is removed from the
@@ -81,13 +83,14 @@ def inference(images, num_classes, net='alexnet', for_training=False, restore_lo
                         stddev=0.1,
                         activation=tf.nn.relu,
                         batch_norm_params=batch_norm_params):
-      if net == 'inception':
+      if net == 'inception_v3':
           logits, endpoints = slim.inception.inception_v3(
               images,
               dropout_keep_prob=0.8,
               num_classes=num_classes,
               is_training=for_training,
               restore_logits=restore_logits,
+              seed=FLAGS.seed,
               scope=scope)
       else:
           method_to_call = getattr(slim.models, net)
@@ -97,6 +100,7 @@ def inference(images, num_classes, net='alexnet', for_training=False, restore_lo
               num_classes=num_classes,
               is_training=for_training,
               restore_logits=restore_logits,
+              seed=FLAGS.seed,
               scope=scope)
       #else:
       #    raise ValueError("Wrong net type:{}".format(net))
@@ -136,18 +140,22 @@ def loss(logits, labels, batch_size=None, aux_logits=True):
   dense_labels = tf.sparse_to_dense(concated,
                                     [batch_size, num_classes],
                                     1.0, 0.0)
+  if 'inception_v3' == FLAGS.net:
+    label_smoothing = 0.1
+  else:
+    label_smoothing = 0.0
 
   # Cross entropy loss for the main softmax prediction.
   slim.losses.cross_entropy_loss(logits[0],
                                  dense_labels,
-                                 label_smoothing=0.1,
+                                 label_smoothing=label_smoothing,
                                  weight=1.0)
 
   # Cross entropy loss for the auxiliary softmax head.
   if aux_logits:
       slim.losses.cross_entropy_loss(logits[1],
                                      dense_labels,
-                                     label_smoothing=0.1,
+                                     label_smoothing=label_smoothing,
                                      weight=0.4,
                                      scope='aux_loss')
 
