@@ -39,7 +39,7 @@ bazel-bin/inception/cifar10_eval \
 --batch_size 50 \
 --checkpoint_dir /tmp/cifar10_train  \
 --restore_avg_var True \
---tower tower_0 \
+--tower 0 \
 --eval_interval_secs 300 \
 --eval_dir /tmp/cifar10_eval
 
@@ -65,7 +65,7 @@ bazel-bin/inception/imagenet_eval \
 --batch_size 50 \
 --checkpoint_dir /tmp/imagenet_train  \
 --restore_avg_var True \
---tower tower_0 \
+--tower 0 \
 --eval_dir /tmp/imagenet_eval
 
 ```
