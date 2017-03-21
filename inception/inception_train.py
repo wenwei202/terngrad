@@ -340,7 +340,7 @@ def train(dataset):
               tower_grads[i], mean_scalers)
 
       for grads in tower_grads:
-        _gradient_summary(grads, 'binary',add_sparsity=True)
+        _gradient_summary(grads, 'binary')
 
     # We must calculate the mean of each gradient. Note that this is the
     # synchronization point across all towers @ CPU.

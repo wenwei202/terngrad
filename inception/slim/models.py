@@ -72,12 +72,13 @@ def alexnet(inputs,
   """
   # end_points will collect relevant activations for external use, for example
   # summaries or losses.
+  print ("INFO: batch norm in alexnet is disabled")
   end_points = {}
   with tf.name_scope(scope, 'alexnet', [inputs]):
     with scopes.arg_scope([ops.conv2d, ops.fc, ops.batch_norm, ops.dropout],
                           is_training=is_training):
       with scopes.arg_scope([ops.conv2d, ops.fc],
-                            weight_decay=0.0005, stddev=0.01, bias=0.1):
+                            weight_decay=0.0005, stddev=0.01, bias=0.1, batch_norm_params=None):
         with scopes.arg_scope([ops.conv2d],
                               stride=1, padding='SAME'):
           with scopes.arg_scope([ops.max_pool],
@@ -177,7 +178,7 @@ def _alexnet_v2(inputs,
   Returns:
     the last op containing the log predictions and end_points dict.
   """
-  with tf.variable_scope(scope, 'alexnet_v2', [inputs]) as sc:
+  with tf.variable_scope('alexnet_v2', 'alexnet_v2', [inputs]) as sc:
     end_points_collection = sc.name + '_end_points'
     # Collect outputs for conv2d, fully_connected and max_pool2d.
     with slim.arg_scope([slim.conv2d, slim.fully_connected, slim.max_pool2d],
@@ -281,7 +282,7 @@ def _vgg_16(inputs,
   Returns:
     the last op containing the log predictions and end_points dict.
   """
-  with tf.variable_scope(scope, 'vgg_16', [inputs]) as sc:
+  with tf.variable_scope('vgg_16', 'vgg_16', [inputs]) as sc:
     end_points_collection = sc.name + '_end_points'
     # Collect outputs for conv2d, fully_connected and max_pool2d.
     with slim.arg_scope([slim.conv2d, slim.fully_connected, slim.max_pool2d],
@@ -370,7 +371,7 @@ def _vgg_a(inputs,
   Returns:
     the last op containing the log predictions and end_points dict.
   """
-  with tf.variable_scope(scope, 'vgg_a', [inputs]) as sc:
+  with tf.variable_scope('vgg_a', 'vgg_a', [inputs]) as sc:
     end_points_collection = sc.name + '_end_points'
     # Collect outputs for conv2d, fully_connected and max_pool2d.
     with slim.arg_scope([slim.conv2d, slim.fully_connected, slim.max_pool2d],

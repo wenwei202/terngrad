@@ -35,7 +35,7 @@ fi
 current_time=$(date)
 current_time=${current_time// /_}
 current_time=${current_time//:/-}
-FOLDER_NAME=${NET}_${IMAGE_SIZE}_${OPTIMIZER}_${GRAD_BITS}_${BASE_LR}_${CLIP_FACTOR}_${TRAIN_BATCH_SIZE}_${NUM_GPUS}_${current_time}
+FOLDER_NAME=${DATASET_NAME}_${NET}_${IMAGE_SIZE}_${OPTIMIZER}_${GRAD_BITS}_${BASE_LR}_${CLIP_FACTOR}_${TRAIN_BATCH_SIZE}_${NUM_GPUS}_${current_time}
 TRAIN_DIR=${TRAIN_WORKSPACE}/${FOLDER_NAME}
 EVAL_DIR=${EVAL_WORKSPACE}/${FOLDER_NAME}
 if [ ! -d "$TRAIN_DIR" ]; then
