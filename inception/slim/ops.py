@@ -177,6 +177,7 @@ def conv2d(inputs,
            is_training=True,
            trainable=True,
            restore=True,
+           weights_initializer = tf.truncated_normal_initializer,
            scope=None,
            reuse=None,
            seed=1):
@@ -217,13 +218,13 @@ def conv2d(inputs,
     num_filters_in = inputs.get_shape()[-1]
     weights_shape = [kernel_h, kernel_w,
                      num_filters_in, num_filters_out]
-    weights_initializer = tf.truncated_normal_initializer(stddev=stddev, seed=seed)
+    # weights_initializer = tf.truncated_normal_initializer(stddev=stddev, seed=seed)
     l2_regularizer = None
     if weight_decay and weight_decay > 0:
       l2_regularizer = losses.l2_regularizer(weight_decay)
     weights = variables.variable('weights',
                                  shape=weights_shape,
-                                 initializer=weights_initializer,
+                                 initializer=weights_initializer(stddev=stddev, seed=seed),
                                  regularizer=l2_regularizer,
                                  trainable=trainable,
                                  restore=restore)
@@ -258,6 +259,7 @@ def fc(inputs,
        is_training=True,
        trainable=True,
        restore=True,
+       weights_initializer = tf.truncated_normal_initializer,
        scope=None,
        reuse=None,
        seed=1):
@@ -290,13 +292,13 @@ def fc(inputs,
   with tf.variable_scope(scope, 'FC', [inputs], reuse=reuse):
     num_units_in = inputs.get_shape()[1]
     weights_shape = [num_units_in, num_units_out]
-    weights_initializer = tf.truncated_normal_initializer(stddev=stddev, seed=seed)
+    # weights_initializer = tf.truncated_normal_initializer(stddev=stddev, seed=seed)
     l2_regularizer = None
     if weight_decay and weight_decay > 0:
       l2_regularizer = losses.l2_regularizer(weight_decay)
     weights = variables.variable('weights',
                                  shape=weights_shape,
-                                 initializer=weights_initializer,
+                                 initializer=weights_initializer(stddev=stddev, seed=seed),
                                  regularizer=l2_regularizer,
                                  trainable=trainable,
                                  restore=restore)

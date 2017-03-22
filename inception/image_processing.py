@@ -73,6 +73,42 @@ tf.app.flags.DEFINE_integer('input_queue_memory_factor', 16,
 tf.app.flags.DEFINE_string('dataset_name','imagenet',
                            """Dataset to train on (imagenet or cifar10).""")
 
+_R_MEAN = 123.68
+_G_MEAN = 116.78
+_B_MEAN = 103.94
+_RESIZE_SIDE = 256
+def _mean_image_subtraction(image, means):
+  """Subtracts the given means from each image channel.
+
+  For example:
+    means = [123.68, 116.779, 103.939]
+    image = _mean_image_subtraction(image, means)
+
+  Note that the rank of `image` must be known.
+
+  Args:
+    image: a tensor of size [height, width, C].
+    means: a C-vector of values to subtract from each channel.
+
+  Returns:
+    the centered image.
+
+  Raises:
+    ValueError: If the rank of `image` is unknown, if `image` has a rank other
+      than three or if the number of channels in `image` doesn't match the
+      number of values in `means`.
+  """
+  if image.get_shape().ndims != 3:
+    raise ValueError('Input must be of size [height, width, C>0]')
+  num_channels = image.get_shape().as_list()[-1]
+  if len(means) != num_channels:
+    raise ValueError('len(means) must match the number of channels')
+
+  channels = tf.split(axis=2, num_or_size_splits=num_channels, value=image)
+  for i in range(num_channels):
+    channels[i] -= means[i]
+  return tf.concat(axis=2, values=channels)
+
 def inputs(dataset, batch_size=None, num_preprocess_threads=None):
   """Generate batches of ImageNet images for evaluation.
 
@@ -296,6 +332,61 @@ def distort_image(image, height, width, bbox, thread_id=0, scope=None):
     if not thread_id:
       tf.summary.image('final_distorted_image',
                        tf.expand_dims(distorted_image, 0))
+
+    distorted_image = tf.subtract(distorted_image, 0.5)
+    distorted_image = tf.multiply(distorted_image, 2.0)
+
+    return distorted_image
+
+def distort_alexnet_image(image, height, width, bbox, thread_id=0, scope=None):
+  """Distort one image for training a network.
+
+  Distorting images provides a useful technique for augmenting the data
+  set during training in order to make the network invariant to aspects
+  of the image that do not effect the label.
+
+  Args:
+    image: 3-D float Tensor of image
+    height: integer
+    width: integer
+    bbox: 3-D float Tensor of bounding boxes arranged [1, num_boxes, coords]
+      where each coordinate is [0, 1) and the coordinates are arranged
+      as [ymin, xmin, ymax, xmax].
+    thread_id: integer indicating the preprocessing thread.
+    scope: Optional scope for op_scope.
+  Returns:
+    3-D float Tensor of distorted image used for training.
+  """
+  with tf.op_scope([image, height, width, bbox], scope, 'distort_image'):
+    # Each bounding box has shape [1, num_boxes, box coords] and
+    # the coordinates are ordered [ymin, xmin, ymax, xmax].
+
+    if not thread_id:
+      tf.summary.image('original_image', tf.expand_dims(image, 0))
+
+    # This resizing operation may distort the images because the aspect
+    # ratio is not respected. We select a resize method in a round robin
+    # fashion based on the thread number.
+    # Note that ResizeMethod contains 4 enumerated resizing methods.
+    #resize_method = thread_id % 4
+    distorted_image = tf.image.resize_images(image, [_RESIZE_SIDE, _RESIZE_SIDE])
+    if not thread_id:
+      tf.summary.image('resized_image', tf.expand_dims(distorted_image, 0))
+
+    # crop
+    distorted_image = tf.random_crop(distorted_image, [height, width, 3])
+    if not thread_id:
+      tf.summary.image('cropped_resized_image', tf.expand_dims(distorted_image, 0))
+
+    # Randomly flip the image horizontally.
+    distorted_image = tf.image.random_flip_left_right(distorted_image)
+    if not thread_id:
+      tf.summary.image('final_distorted_image', tf.expand_dims(distorted_image, 0))
+
+    # scale and reduce mean
+    distorted_image = tf.multiply(distorted_image, 255.0)
+    distorted_image = _mean_image_subtraction(distorted_image, [_R_MEAN, _G_MEAN, _B_MEAN])
+
     return distorted_image
 
 def distort_cifar10_image(image, height, width, thread_id=0, scope=None):
@@ -371,6 +462,10 @@ def eval_image(image, height, width, scope=None):
     image = tf.image.resize_bilinear(image, [height, width],
                                      align_corners=False)
     image = tf.squeeze(image, [0])
+
+    image = tf.subtract(image, 0.5)
+    image = tf.multiply(image, 2.0)
+
     return image
 
 def eval_cifar10_image(image, height, width, scope=None):
@@ -393,6 +488,28 @@ def eval_cifar10_image(image, height, width, scope=None):
     image = tf.image.per_image_standardization(image)
     image.set_shape([height, width, 3])
 
+    return image
+
+def eval_alexnet_image(image, height, width, scope=None):
+  """Prepare one image for evaluation.
+
+  Args:
+    image: 3-D float Tensor
+    height: integer
+    width: integer
+    scope: Optional scope for op_scope.
+  Returns:
+    3-D float Tensor of prepared image.
+  """
+  with tf.op_scope([image, height, width], scope, 'eval_image'):
+    image = tf.image.resize_images(image, [_RESIZE_SIDE, _RESIZE_SIDE])
+
+    # Crop the central region of the image
+    image = tf.image.resize_image_with_crop_or_pad(image, height, width)
+
+    # scale and reduce mean
+    image = tf.multiply(image, 255.0)
+    image = _mean_image_subtraction(image, [_R_MEAN, _G_MEAN, _B_MEAN])
     return image
 
 def image_preprocessing(image_buffer, bbox, train, thread_id=0, image_format='JPEG'):
@@ -426,21 +543,31 @@ def image_preprocessing(image_buffer, bbox, train, thread_id=0, image_format='JP
     if FLAGS.dataset_name == 'cifar10':
       image = distort_cifar10_image(image, height, width, thread_id)
     elif FLAGS.dataset_name == 'imagenet':
-      image = distort_image(image, height, width, bbox, thread_id)
+      if FLAGS.net == 'alexnet':
+        image = distort_alexnet_image(image, height, width, bbox, thread_id)
+      else:
+        image = distort_image(image, height, width, bbox, thread_id)
     else:
       raise ValueError("Wrong dataset_name!")
   else:
     if FLAGS.dataset_name == 'cifar10':
       image = eval_cifar10_image(image, height, width)
     elif FLAGS.dataset_name == 'imagenet':
-      image = eval_image(image, height, width)
+      if FLAGS.net == 'alexnet':
+        image = eval_alexnet_image(image, height, width)
+      else:
+        image = eval_image(image, height, width)
     else:
       raise ValueError("Wrong dataset_name!")
 
   # Finally, rescale to [-1,1] instead of [0, 1)
-  if 'cifar10' != FLAGS.dataset_name:
-    image = tf.subtract(image, 0.5)
-    image = tf.multiply(image, 2.0)
+  #if 'cifar10' != FLAGS.dataset_name:
+  #  if 'alexnet' == FLAGS.net:
+  #    image = tf.subtract(image, 0.5)
+  #    image = tf.multiply(image, 255.0)
+  #  else:
+  #    image = tf.subtract(image, 0.5)
+  #    image = tf.multiply(image, 2.0)
   return image
 
 

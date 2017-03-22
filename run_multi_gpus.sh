@@ -3,7 +3,7 @@ set -e
 set -x
 
 DATASET_NAME=imagenet # imagenet or cifar10
-ROOT_WORKSPACE=/tmp/ # the location to store summary and logs
+ROOT_WORKSPACE=/tmp/ # the location to store tf.summary and logs
 DATA_DIR=/${HOME}/dataset/${DATASET_NAME}-data # dataset location
 NUM_GPUS=2
 export CUDA_VISIBLE_DEVICES=0,1 # specify visible gpus to tensorflow
@@ -13,11 +13,12 @@ IMAGE_SIZE=224
 GRAD_BITS=32
 BASE_LR=0.01
 CLIP_FACTOR=0.0 # 0.0 means no clipping
-TRAIN_BATCH_SIZE=256
+TRAIN_BATCH_SIZE=256 # total batch size
 VAL_BATCH_SIZE=50 # set smaller to avoid OOM
+NUM_EPOCHS_PER_DECAY=20 # per decay learning rate
 MAX_STEPS=370000
 VAL_TOWER=0 # -1 for cpu
-EVAL_INTERVAL_SECS=3600
+EVAL_INTERVAL_SECS=3600 # seconds to evaluate the accuracy
 SEED=123 # use ${RANDOM} if no duplicable results are required
 
 if [ ! -d "$ROOT_WORKSPACE" ]; then
@@ -60,6 +61,7 @@ bazel-bin/inception/${DATASET_NAME}_eval \
 
 bazel-bin/inception/${DATASET_NAME}_train \
 --seed ${SEED}  \
+--num_epochs_per_decay ${NUM_EPOCHS_PER_DECAY} \
 --initial_learning_rate ${BASE_LR} \
 --grad_bits ${GRAD_BITS} \
 --clip_factor ${CLIP_FACTOR} \
