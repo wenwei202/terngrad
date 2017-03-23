@@ -7,7 +7,7 @@ This is a modified copy of `./inception`.
 
 ```
 cd ./${TF_MODEL_ROOT}/slim
-export DATA_PATH="~/dataset/cifar10-data/" # the directory of database
+export DATA_PATH="${HOME}/dataset/cifar10-data/" # the directory of database
 python download_and_convert_data.py --dataset_name cifar10 --dataset_dir ${DATA_PATH}
 cd ${DATA_PATH}
 mv cifar10_test.tfrecord cifar10_validation.tfrecord
@@ -47,6 +47,10 @@ bazel-bin/inception/cifar10_eval \
 # Build and run ImageNet
 
 ```
+cd ./${TF_MODEL_ROOT}/bingrad
+bazel build inception/imagenet_train
+bazel build inception/imagenet_eval
+
 bazel-bin/inception/imagenet_train \
 --optimizer momentum \
 --net alexnet \
