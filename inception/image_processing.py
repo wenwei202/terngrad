@@ -253,7 +253,7 @@ def distort_color(image, thread_id=0, scope=None):
     return image
 
 
-def distort_image(image, height, width, bbox, thread_id=0, scope=None):
+def distort_image(image, height, width, bbox, thread_id=0, scope=None, add_summary=False):
   """Distort one image for training a network.
 
   Distorting images provides a useful technique for augmenting the data
@@ -277,7 +277,7 @@ def distort_image(image, height, width, bbox, thread_id=0, scope=None):
     # the coordinates are ordered [ymin, xmin, ymax, xmax].
 
     # Display the bounding box in the first thread only.
-    if not thread_id:
+    if (not thread_id) and add_summary:
       image_with_box = tf.image.draw_bounding_boxes(tf.expand_dims(image, 0),
                                                     bbox)
       tf.summary.image('image_with_bounding_boxes', image_with_box)
@@ -298,7 +298,7 @@ def distort_image(image, height, width, bbox, thread_id=0, scope=None):
         max_attempts=100,
         use_image_if_no_bounding_boxes=True)
     bbox_begin, bbox_size, distort_bbox = sample_distorted_bounding_box
-    if not thread_id:
+    if (not thread_id) and add_summary:
       image_with_distorted_box = tf.image.draw_bounding_boxes(
           tf.expand_dims(image, 0), distort_bbox)
       #tf.image_summary('images_with_distorted_bounding_box',
@@ -318,7 +318,7 @@ def distort_image(image, height, width, bbox, thread_id=0, scope=None):
     # Restore the shape since the dynamic slice based upon the bbox_size loses
     # the third dimension.
     distorted_image.set_shape([height, width, 3])
-    if not thread_id:
+    if (not thread_id) and add_summary:
       #tf.image_summary('cropped_resized_image',
       tf.summary.image('cropped_resized_image',
                        tf.expand_dims(distorted_image, 0))
@@ -329,7 +329,7 @@ def distort_image(image, height, width, bbox, thread_id=0, scope=None):
     # Randomly distort the colors.
     distorted_image = distort_color(distorted_image, thread_id)
 
-    if not thread_id:
+    if (not thread_id) and add_summary:
       tf.summary.image('final_distorted_image',
                        tf.expand_dims(distorted_image, 0))
 
@@ -338,7 +338,7 @@ def distort_image(image, height, width, bbox, thread_id=0, scope=None):
 
     return distorted_image
 
-def distort_alexnet_image(image, height, width, bbox, thread_id=0, scope=None):
+def distort_alexnet_image(image, height, width, bbox, thread_id=0, scope=None, add_summary=False):
   """Distort one image for training a network.
 
   Distorting images provides a useful technique for augmenting the data
@@ -361,7 +361,7 @@ def distort_alexnet_image(image, height, width, bbox, thread_id=0, scope=None):
     # Each bounding box has shape [1, num_boxes, box coords] and
     # the coordinates are ordered [ymin, xmin, ymax, xmax].
 
-    if not thread_id:
+    if (not thread_id) and add_summary:
       tf.summary.image('original_image', tf.expand_dims(image, 0))
 
     # This resizing operation may distort the images because the aspect
@@ -370,17 +370,17 @@ def distort_alexnet_image(image, height, width, bbox, thread_id=0, scope=None):
     # Note that ResizeMethod contains 4 enumerated resizing methods.
     #resize_method = thread_id % 4
     distorted_image = tf.image.resize_images(image, [_RESIZE_SIDE, _RESIZE_SIDE])
-    if not thread_id:
+    if (not thread_id) and add_summary:
       tf.summary.image('resized_image', tf.expand_dims(distorted_image, 0))
 
     # crop
     distorted_image = tf.random_crop(distorted_image, [height, width, 3])
-    if not thread_id:
+    if (not thread_id) and add_summary:
       tf.summary.image('cropped_resized_image', tf.expand_dims(distorted_image, 0))
 
     # Randomly flip the image horizontally.
     distorted_image = tf.image.random_flip_left_right(distorted_image)
-    if not thread_id:
+    if (not thread_id) and add_summary:
       tf.summary.image('final_distorted_image', tf.expand_dims(distorted_image, 0))
 
     # scale and reduce mean
@@ -512,7 +512,7 @@ def eval_alexnet_image(image, height, width, scope=None):
     image = _mean_image_subtraction(image, [_R_MEAN, _G_MEAN, _B_MEAN])
     return image
 
-def image_preprocessing(image_buffer, bbox, train, thread_id=0, image_format='JPEG'):
+def image_preprocessing(image_buffer, bbox, train, thread_id=0, image_format='JPEG', add_summary=False):
   """Decode and preprocess one image for evaluation or training.
 
   Args:
@@ -544,9 +544,9 @@ def image_preprocessing(image_buffer, bbox, train, thread_id=0, image_format='JP
       image = distort_cifar10_image(image, height, width, thread_id)
     elif FLAGS.dataset_name == 'imagenet':
       if FLAGS.net == 'alexnet':
-        image = distort_alexnet_image(image, height, width, bbox, thread_id)
+        image = distort_alexnet_image(image, height, width, bbox, thread_id=thread_id, add_summary=add_summary)
       else:
-        image = distort_image(image, height, width, bbox, thread_id)
+        image = distort_image(image, height, width, bbox, thread_id=thread_id, add_summary=add_summary)
     else:
       raise ValueError("Wrong dataset_name!")
   else:
@@ -646,7 +646,7 @@ def parse_example_proto(example_serialized):
 
 
 def batch_inputs(dataset, batch_size, train, num_preprocess_threads=None,
-                 num_readers=1):
+                 num_readers=1, add_summary=False):
   """Contruct batches of training or evaluation examples from the image dataset.
 
   Args:
@@ -730,7 +730,8 @@ def batch_inputs(dataset, batch_size, train, num_preprocess_threads=None,
       # Parse a serialized Example proto to extract the image and metadata.
       image_buffer, label_index, bbox, _, image_format = parse_example_proto(
           example_serialized)
-      image = image_preprocessing(image_buffer, bbox, train, thread_id, image_format=image_format)
+      image = image_preprocessing(image_buffer, bbox, train, thread_id,
+                                  image_format=image_format, add_summary=add_summary)
       images_and_labels.append([image, label_index])
 
     images, label_index_batch = tf.train.batch_join(
@@ -747,6 +748,7 @@ def batch_inputs(dataset, batch_size, train, num_preprocess_threads=None,
     images = tf.reshape(images, shape=[batch_size, height, width, depth])
 
     # Display the training images in the visualizer.
-    tf.summary.image('images', images)
+    if add_summary:
+      tf.summary.image('images', images)
 
     return images, tf.reshape(label_index_batch, [batch_size])
