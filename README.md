@@ -6,8 +6,8 @@ This is a modified copy of `./inception`.
 # Download and generate cifar-10 TFRecord
 
 ```
-cd ./slim
-export DATA_PATH="~/dataset/cifar10-data/" # the directory of database
+cd ./${TF_MODEL_ROOT}/slim
+export DATA_PATH="${HOME}/dataset/cifar10-data/" # the directory of database
 python download_and_convert_data.py --dataset_name cifar10 --dataset_dir ${DATA_PATH}
 cd ${DATA_PATH}
 mv cifar10_test.tfrecord cifar10_validation.tfrecord
@@ -15,8 +15,9 @@ mv cifar10_test.tfrecord cifar10_validation.tfrecord
 
 # Build and run evaluating/training on cifar-10
 ```
-cd ./bingrad
+cd ./${TF_MODEL_ROOT}/bingrad
 bazel build inception/cifar10_train
+bazel build inception/cifar10_eval
 
 bazel-bin/inception/cifar10_train \
 --optimizer adam \
@@ -29,8 +30,6 @@ bazel-bin/inception/cifar10_train \
 --batch_size 128 \
 --train_dir /tmp/cifar10_train \
 --data_dir ~/dataset/cifar10-data/ 
-
-bazel build inception/cifar10_eval
 
 bazel-bin/inception/cifar10_eval \
 --data_dir ~/dataset/cifar10-data/ \
@@ -48,6 +47,10 @@ bazel-bin/inception/cifar10_eval \
 # Build and run ImageNet
 
 ```
+cd ./${TF_MODEL_ROOT}/bingrad
+bazel build inception/imagenet_train
+bazel build inception/imagenet_eval
+
 bazel-bin/inception/imagenet_train \
 --optimizer momentum \
 --net alexnet \
