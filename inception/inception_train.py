@@ -80,6 +80,8 @@ tf.app.flags.DEFINE_float('clip_factor', 0.0,
                             """The factor of stddev to clip gradients.""")
 tf.app.flags.DEFINE_integer('save_tower', -1,
                             """Save the variables in a specific tower. -1 refers all towers""")
+tf.app.flags.DEFINE_bool('benchmark_mode', False,
+                            """benchmarking mode to test the scalability.""")
 
 # Constants dictating the learning rate schedule.
 RMSPROP_DECAY = 0.9                # Decay term for RMSProp.
@@ -248,9 +250,14 @@ def train(dataset):
     # Override the number of preprocessing threads to account for the increased
     # number of GPU towers.
     num_preprocess_threads = FLAGS.num_preprocess_threads * FLAGS.num_gpus
-    images, labels = image_processing.distorted_inputs(
-        dataset,
-        num_preprocess_threads=num_preprocess_threads)
+    if FLAGS.benchmark_mode:
+      images = tf.random_normal([FLAGS.batch_size, FLAGS.image_size, FLAGS.image_size, 3])
+      labels = tf.constant(1, shape=[FLAGS.batch_size])
+    else:
+      images, labels = image_processing.distorted_inputs(
+          dataset,
+          num_preprocess_threads=num_preprocess_threads)
+
 
 
     # Number of classes in the Dataset label set plus 1.
