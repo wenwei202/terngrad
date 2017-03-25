@@ -251,8 +251,8 @@ def train(dataset):
     # number of GPU towers.
     num_preprocess_threads = FLAGS.num_preprocess_threads * FLAGS.num_gpus
     if FLAGS.benchmark_mode:
-      images = tf.random_normal([FLAGS.batch_size, FLAGS.image_size, FLAGS.image_size, 3])
-      labels = tf.constant(1, shape=[FLAGS.batch_size])
+      images = tf.constant(0.5, shape=[FLAGS.batch_size, FLAGS.image_size, FLAGS.image_size, 3])
+      labels = tf.random_uniform([FLAGS.batch_size], minval=0, maxval=dataset.num_classes()-1, dtype=tf.int32)
     else:
       images, labels = image_processing.distorted_inputs(
           dataset,
