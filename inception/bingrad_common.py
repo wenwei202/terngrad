@@ -19,10 +19,13 @@ from __future__ import print_function
 
 import tensorflow as tf
 
+FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_integer('max_steps',370000,
                             """Number of batches to run.""")
 tf.app.flags.DEFINE_string('net', 'alexnet',
                           """The net to train (inception_v3, alexnet, vgg_16, vgg_a).""")
+tf.app.flags.DEFINE_integer('size_to_binarize', 1,
+                            """The min number of parameters to enable binarizing.""")
 
 def clip_gradients_by_stddev(grads_and_vars, clip_factor = 2.5):
     """ Clip gradients to [-clip_factor*stddev, clip_factor*stddev]."""
@@ -35,7 +38,10 @@ def clip_gradients_by_stddev(grads_and_vars, clip_factor = 2.5):
 
         mean_gradient = tf.reduce_mean(gradient)
         stddev_gradient = tf.sqrt(tf.reduce_mean(tf.square(gradient - mean_gradient)))
-        clipped_gradient = tf.clip_by_value(gradient, -clip_factor * stddev_gradient, clip_factor * stddev_gradient)
+        #clipped_gradient = tf.clip_by_value(gradient, -clip_factor * stddev_gradient, clip_factor * stddev_gradient)
+        clipped_gradient = tf.cond(tf.size(gradient) < FLAGS.size_to_binarize,
+                               lambda: gradient,
+                               lambda: tf.clip_by_value(gradient, -clip_factor * stddev_gradient, clip_factor * stddev_gradient))
 
         clipped_gradients.append(clipped_gradient)
     return list(zip(clipped_gradients, variables))
@@ -49,8 +55,10 @@ def clip_gradients_by_thresholds(grads_and_vars, thresholds):
             clipped_gradients.append(None)
             continue
 
-        clipped_gradient = tf.clip_by_value(gradient, -threshold, threshold)
-
+        #clipped_gradient = tf.clip_by_value(gradient, -threshold, threshold)
+        clipped_gradient = tf.cond(tf.size(gradient) < FLAGS.size_to_binarize,
+                               lambda: gradient,
+                               lambda: tf.clip_by_value(gradient, -threshold, threshold))
         clipped_gradients.append(clipped_gradient)
     return list(zip(clipped_gradients, variables))
 
@@ -73,7 +81,10 @@ def stochastical_binarize_gradients(grads_and_vars, scalers):
     sign_gradient = tf.sign( gradient )
     rnd_sample = tf.random_uniform(gradient_shape,0,scaler)
     where_cond = tf.less(rnd_sample, abs_gradient)
-    binarized_gradient = tf.where(where_cond, sign_gradient * scaler, zeros)
+    #binarized_gradient = tf.where(where_cond, sign_gradient * scaler, zeros)
+    binarized_gradient = tf.cond(tf.size(gradient) < FLAGS.size_to_binarize,
+                               lambda: gradient,
+                               lambda: tf.where(where_cond, sign_gradient * scaler, zeros))
 
     binarized_gradients.append(binarized_gradient)
   return list(zip(binarized_gradients, variables))
@@ -186,10 +197,5 @@ def average_scalers(tower_scalers):
     scaler = tf.concat(scalers, 0)
     scaler = tf.reduce_mean(scaler, 0)
 
-    # Keep in mind that the Variables are redundant because they are shared
-    # across towers. So .. we will just return the first tower's pointer to
-    # the Variable.
-    #v = scale_and_vars[0][1]
-    #scale_and_var = (scale, v)
     average_scalers.append(scaler)
   return average_scalers

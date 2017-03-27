@@ -13,6 +13,7 @@ IMAGE_SIZE=224
 GRAD_BITS=32
 BASE_LR=0.01
 CLIP_FACTOR=0.0 # 0.0 means no clipping
+SIZE_TO_BINARIZE=1 # the min size of variable to enable binarizing. 1 means binarizing all variables when GRAD_BITS=1
 TRAIN_BATCH_SIZE=256 # total batch size
 VAL_BATCH_SIZE=50 # set smaller to avoid OOM
 NUM_EPOCHS_PER_DECAY=20 # per decay learning rate
@@ -65,6 +66,7 @@ bazel-bin/inception/${DATASET_NAME}_train \
 --initial_learning_rate ${BASE_LR} \
 --grad_bits ${GRAD_BITS} \
 --clip_factor ${CLIP_FACTOR} \
+--size_to_binarize ${SIZE_TO_BINARIZE} \
 --optimizer ${OPTIMIZER} \
 --net ${NET} \
 --image_size ${IMAGE_SIZE} \
