@@ -80,7 +80,6 @@ tf.app.flags.DEFINE_float('clip_factor', 0.0,
                             """The factor of stddev to clip gradients.""")
 tf.app.flags.DEFINE_integer('save_tower', -1,
                             """Save the variables in a specific tower. -1 refers all towers""")
-
 tf.app.flags.DEFINE_bool('benchmark_mode', False,
                             """benchmarking mode to test the scalability.""")
 
@@ -129,12 +128,7 @@ def _tower_loss(images, labels, num_classes, scope, reuse_variables=None):
 
   # Calculate the total loss for the current tower.
   regularization_losses = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES, scope)
-  #total_loss = tf.add_n(losses + regularization_losses, name='total_loss')
-  total_cross_entropy_loss = tf.add_n(losses, name='total_cross_entropy_loss')
-  total_regularization_loss = tf.add_n(regularization_losses, name='total_regularization_loss')
-  total_loss = tf.add(total_cross_entropy_loss,
-                      total_regularization_loss,
-                      name='total_loss')
+  total_loss = tf.add_n(losses + regularization_losses, name='total_loss')
 
   # Compute the moving average of all individual losses and the total loss.
   # loss_averages = tf.train.ExponentialMovingAverage(0.9, name='avg')
@@ -142,7 +136,7 @@ def _tower_loss(images, labels, num_classes, scope, reuse_variables=None):
 
   # Attach a scalar summmary to all individual losses and the total loss; do the
   # same for the averaged version of the losses.
-  for l in losses + [total_loss] + regularization_losses + [total_regularization_loss]:
+  for l in (losses + regularization_losses) + [total_loss] :
     # Remove 'tower_[0-9]/' from the name in case this is a multi-GPU training
     # session. This helps the clarity of presentation on TensorBoard.
     loss_name = re.sub('%s_[0-9]*/' % inception.TOWER_NAME, '', l.op.name)
@@ -153,7 +147,7 @@ def _tower_loss(images, labels, num_classes, scope, reuse_variables=None):
 
   # with tf.control_dependencies([loss_averages_op]):
   #   total_loss = tf.identity(total_loss)
-  return total_loss, total_cross_entropy_loss, total_regularization_loss
+  return total_loss
 
 
 def _average_gradients(tower_grads):
@@ -265,6 +259,7 @@ def train(dataset):
           num_preprocess_threads=num_preprocess_threads)
 
 
+
     # Number of classes in the Dataset label set plus 1.
     # Label 0 is reserved for an (unused) background class.
     if FLAGS.dataset_name == 'imagenet':
@@ -277,10 +272,9 @@ def train(dataset):
     labels_splits = tf.split(labels, FLAGS.num_gpus, 0)
 
     # Calculate the gradients for each model tower.
-    tower_grads = [] # gradients of cross entropy or total cost for each tower
+    tower_grads = []
     tower_batchnorm_updates = []
     tower_scalers = []
-    tower_reg_grads = []
     reuse_variables = None
     for i in range(FLAGS.num_gpus):
       with tf.device('/gpu:%d' % i):
@@ -292,7 +286,7 @@ def train(dataset):
               # Calculate the loss for one tower of the ImageNet model. This
               # function constructs the entire ImageNet model but shares the
               # variables across all towers.
-              loss, entropy_loss, reg_loss = _tower_loss(images_splits[i], labels_splits[i], num_classes,
+              loss = _tower_loss(images_splits[i], labels_splits[i], num_classes,
                                  scope, reuse_variables)
 
             # Reuse variables for the next tower?
@@ -308,7 +302,7 @@ def train(dataset):
 
             # Calculate the gradients for the batch of data on this ImageNet
             # tower.
-            grads = opt.compute_gradients(entropy_loss, tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope=scope))
+            grads = opt.compute_gradients(loss, tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope=scope))
 
             # Keep track of the gradients across all towers.
             tower_grads.append(grads)
@@ -319,10 +313,6 @@ def train(dataset):
               # Returns max value when clip_factor==0.0
               scalers = bingrad_common.gradient_binarizing_scalers(grads, FLAGS.clip_factor)
               tower_scalers.append(scalers)
-
-            # regularization gradients
-            reg_grads = opt.compute_gradients(reg_loss, tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope=scope))
-            tower_reg_grads.append(reg_grads)
 
     if 1 == FLAGS.grad_bits:
       for grads in tower_grads:
@@ -344,7 +334,7 @@ def train(dataset):
             # and keep track of the gradients across all towers.
             tower_grads[i] = bingrad_common.clip_gradients_by_thresholds(
               tower_grads[i],mean_scalers)
-            
+
       for grads in tower_grads:
         _gradient_summary(grads, 'clipped')
 
@@ -361,6 +351,7 @@ def train(dataset):
 
     # We must calculate the mean of each gradient. Note that this is the
     # synchronization point across all towers @ CPU.
+    #grads = _average_gradients(tower_grads)
     if len(tower_grads)>1:
       tower_grads = bingrad_common.average_gradients2(tower_grads)
 
@@ -376,14 +367,13 @@ def train(dataset):
     # @ GPUs
     #apply_gradient_op = opt.apply_gradients(grads, global_step=global_step)
     apply_gradient_op = []
+    #for tower_grad in tower_grads:
+    #    apply_gradient_op.append(opt.apply_gradients(tower_grad, global_step=global_step))
     for i in xrange(FLAGS.num_gpus):
       with tf.device('/gpu:%d' % i):
         with tf.name_scope('%s_%d' % (inception.TOWER_NAME, i)) as scope:
-          # apply data loss SGD. global_step is incremented by FLAGS.num_gpus per iter
           apply_gradient_op.append(opt.apply_gradients(tower_grads[i],
                                           global_step=global_step))
-          # apply regularization, global_step is omitted to avoid incrementation
-          apply_gradient_op.append(opt.apply_gradients(tower_reg_grads[i]))
 
     # Add histograms for trainable variables.
     for var in tf.trainable_variables():
@@ -462,17 +452,16 @@ def train(dataset):
 
     for step in range(FLAGS.max_steps):
       start_time = time.time()
-      _, entropy_loss_value, reg_loss_value = sess.run([train_op, entropy_loss, reg_loss])
+      _, loss_value = sess.run([train_op, loss])
       duration = time.time() - start_time
 
-      assert not np.isnan(entropy_loss_value), 'Model diverged with entropy_loss = NaN'
+      assert not np.isnan(loss_value), 'Model diverged with loss = NaN'
 
       if step % 10 == 0:
         examples_per_sec = FLAGS.batch_size / float(duration)
-        format_str = ('%s: step %d, entropy_loss = %.2f, reg_loss = %.2f, total_loss = %.2f (%.1f examples/sec; %.3f '
+        format_str = ('%s: step %d, loss = %.2f (%.1f examples/sec; %.3f '
                       'sec/batch)')
-        print(format_str % (datetime.now(), step,
-                            entropy_loss_value, reg_loss_value, entropy_loss_value+reg_loss_value,
+        print(format_str % (datetime.now(), step, loss_value,
                             examples_per_sec, duration))
 
       if step % 1000 == 0:
