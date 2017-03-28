@@ -21,7 +21,8 @@ VAL_BATCH_SIZE=50 # set smaller to avoid OOM
 NUM_EPOCHS_PER_DECAY=20 # per decay learning rate
 MAX_STEPS=370000
 VAL_TOWER=0 # -1 for cpu
-EVAL_INTERVAL_SECS=3600 # seconds to evaluate the accuracy
+EVAL_INTERVAL_SECS=900 # seconds to evaluate the accuracy
+EVAL_DEVICE="/gpu:0" # specify the device to eval. e.g. "/gpu:1", "/cpu:0"
 SEED=123 # use ${RANDOM} if no duplicable results are required
 
 if [ ! -d "$ROOT_WORKSPACE" ]; then
@@ -53,6 +54,7 @@ fi
 
 bazel-bin/inception/${DATASET_NAME}_eval \
 --eval_interval_secs ${EVAL_INTERVAL_SECS} \
+--device ${EVAL_DEVICE} \
 --data_dir ${DATA_DIR} \
 --net ${NET} \
 --image_size ${IMAGE_SIZE} \

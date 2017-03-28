@@ -60,7 +60,7 @@ tf.app.flags.DEFINE_integer('tower', -1,
 tf.app.flags.DEFINE_bool('restore_avg_var', True,
                            """Recover variables from moving average version.""")
 
-def _eval_once(saver, summary_writer, top_1_op, top_5_op, summary_op):
+def _eval_once(saver, summary_writer, top_1_op, top_5_op, summary_op, last_eval_step):
   """Runs Eval once.
 
   Args:
@@ -77,6 +77,14 @@ def _eval_once(saver, summary_writer, top_1_op, top_5_op, summary_op):
   with tf.Session(config=config) as sess:
     ckpt = tf.train.get_checkpoint_state(FLAGS.checkpoint_dir)
     if ckpt and ckpt.model_checkpoint_path:
+      # Assuming model_checkpoint_path looks something like:
+      #   /my-favorite-path/imagenet_train/model.ckpt-0,
+      # extract global_step from it.
+      global_step = ckpt.model_checkpoint_path.split('/')[-1].split('-')[-1]
+      if global_step == last_eval_step:
+        print('step=%s is already evaluated. Skip.' % global_step)
+        return last_eval_step
+
       if os.path.isabs(ckpt.model_checkpoint_path):
         # Restores from checkpoint with absolute path.
         saver.restore(sess, ckpt.model_checkpoint_path)
@@ -84,18 +92,13 @@ def _eval_once(saver, summary_writer, top_1_op, top_5_op, summary_op):
         # Restores from checkpoint with relative path.
         saver.restore(sess, os.path.join(FLAGS.checkpoint_dir,
                                          ckpt.model_checkpoint_path))
-
-      # Assuming model_checkpoint_path looks something like:
-      #   /my-favorite-path/imagenet_train/model.ckpt-0,
-      # extract global_step from it.
-      global_step = ckpt.model_checkpoint_path.split('/')[-1].split('-')[-1]
       print('Succesfully loaded model from %s at step=%s.' %
             (ckpt.model_checkpoint_path, global_step))
       if int(global_step) + 1 >= FLAGS.max_steps:
         final_step = True
     else:
       print('No checkpoint file found')
-      return
+      return last_eval_step
 
     # Start the queue runners.
     coord = tf.train.Coordinator()
@@ -149,6 +152,8 @@ def _eval_once(saver, summary_writer, top_1_op, top_5_op, summary_op):
       print('The final step is evaluated. Exit!')
       exit()
 
+    return global_step
+
 
 def evaluate(dataset):
   """Evaluate model on Dataset for a number of steps."""
@@ -198,11 +203,11 @@ def evaluate(dataset):
     summaries = tf.get_collection(tf.GraphKeys.SUMMARIES)
     summary_op = tf.summary.merge(summaries)
 
-
+    last_eval_step = -1
     summary_writer = tf.summary.FileWriter(FLAGS.eval_dir,
       graph=tf.get_default_graph())
     while True:
-      _eval_once(saver, summary_writer, top_1_op, top_5_op, summary_op)
+      last_eval_step = _eval_once(saver, summary_writer, top_1_op, top_5_op, summary_op, last_eval_step)
       if FLAGS.run_once:
         break
       time.sleep(FLAGS.eval_interval_secs)

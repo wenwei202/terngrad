@@ -3,7 +3,7 @@ set -e
 set -x
 
 DATASET_NAME=cifar10 # imagenet or cifar10
-ROOT_WORKSPACE=/tmp # the location to store summary and logs
+ROOT_WORKSPACE=${HOME}/dataset/results/cifar10/ # the location to store summary and logs
 DATA_DIR=${HOME}/dataset/${DATASET_NAME}-data # dataset location
 NUM_GPUS=2
 export CUDA_VISIBLE_DEVICES=0,1 # specify visible gpus to tensorflow
@@ -22,6 +22,7 @@ NUM_EPOCHS_PER_DECAY=200
 MAX_STEPS=300000
 VAL_TOWER=0 # -1 for cpu
 EVAL_INTERVAL_SECS=120
+EVAL_DEVICE="/gpu:0" # specify the device to eval. e.g. "/gpu:1", "/cpu:0"
 SEED=123 # use ${RANDOM} if no duplicable results are required
 
 if [ ! -d "$ROOT_WORKSPACE" ]; then
@@ -53,6 +54,7 @@ fi
 
 bazel-bin/inception/${DATASET_NAME}_eval \
 --eval_interval_secs ${EVAL_INTERVAL_SECS} \
+--device ${EVAL_DEVICE} \
 --data_dir ${DATA_DIR} \
 --net ${NET} \
 --image_size ${IMAGE_SIZE} \
