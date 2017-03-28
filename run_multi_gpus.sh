@@ -4,7 +4,7 @@ set -x
 
 DATASET_NAME=imagenet # imagenet or cifar10
 ROOT_WORKSPACE=/tmp/ # the location to store tf.summary and logs
-DATA_DIR=/${HOME}/dataset/${DATASET_NAME}-data # dataset location
+DATA_DIR=${HOME}/dataset/${DATASET_NAME}-data # dataset location
 NUM_GPUS=2
 export CUDA_VISIBLE_DEVICES=0,1 # specify visible gpus to tensorflow
 OPTIMIZER=momentum
@@ -13,6 +13,8 @@ IMAGE_SIZE=224
 GRAD_BITS=32
 BASE_LR=0.01
 CLIP_FACTOR=0.0 # 0.0 means no clipping
+WEIGHT_DECAY=0.0005 # default - alexnet/vgg_a/vgg_16:0.0005, inception_v3:0.00004, cifar10_alexnet:0.004
+MOMENTUM=0.9
 SIZE_TO_BINARIZE=1 # the min size of variable to enable binarizing. 1 means binarizing all variables when GRAD_BITS=1
 TRAIN_BATCH_SIZE=256 # total batch size
 VAL_BATCH_SIZE=50 # set smaller to avoid OOM
@@ -66,6 +68,8 @@ bazel-bin/inception/${DATASET_NAME}_train \
 --initial_learning_rate ${BASE_LR} \
 --grad_bits ${GRAD_BITS} \
 --clip_factor ${CLIP_FACTOR} \
+--weight_decay ${WEIGHT_DECAY} \
+--momentum ${MOMENTUM} \
 --size_to_binarize ${SIZE_TO_BINARIZE} \
 --optimizer ${OPTIMIZER} \
 --net ${NET} \

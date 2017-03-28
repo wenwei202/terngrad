@@ -3,8 +3,8 @@ set -e
 set -x
 
 DATASET_NAME=cifar10 # imagenet or cifar10
-ROOT_WORKSPACE=/tmp/ # the location to store summary and logs
-DATA_DIR=/${HOME}/dataset/${DATASET_NAME}-data # dataset location
+ROOT_WORKSPACE=/tmp # the location to store summary and logs
+DATA_DIR=${HOME}/dataset/${DATASET_NAME}-data # dataset location
 NUM_GPUS=2
 export CUDA_VISIBLE_DEVICES=0,1 # specify visible gpus to tensorflow
 OPTIMIZER=momentum
@@ -13,7 +13,9 @@ IMAGE_SIZE=24
 GRAD_BITS=1
 BASE_LR=0.001
 CLIP_FACTOR=2.5 # 0.0 means no clipping
-SIZE_TO_BINARIZE=385 # The min size of variable to enable binarizing. In this example, biases are excluded from binarizing
+WEIGHT_DECAY=0.004 # default - alexnet/vgg_a/vgg_16:0.0005, inception_v3:0.00004, cifar10_alexnet:0.004
+MOMENTUM=0.9
+SIZE_TO_BINARIZE=1 # The min size of variable to enable binarizing. e.g., 385 means biases are excluded from binarizing
 TRAIN_BATCH_SIZE=128
 VAL_BATCH_SIZE=50 # set smaller to avoid OOM
 NUM_EPOCHS_PER_DECAY=200
@@ -66,6 +68,8 @@ bazel-bin/inception/${DATASET_NAME}_train \
 --initial_learning_rate ${BASE_LR} \
 --grad_bits ${GRAD_BITS} \
 --clip_factor ${CLIP_FACTOR} \
+--weight_decay ${WEIGHT_DECAY} \
+--momentum ${MOMENTUM} \
 --size_to_binarize ${SIZE_TO_BINARIZE} \
 --optimizer ${OPTIMIZER} \
 --net ${NET} \

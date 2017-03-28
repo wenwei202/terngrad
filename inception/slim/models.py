@@ -48,13 +48,13 @@ import tensorflow as tf
 from inception.slim import ops
 from inception.slim import scopes
 
-
 def alexnet(inputs,
                  dropout_keep_prob=0.5,
                  num_classes=1000,
                  is_training=True,
                  restore_logits=True,
                  seed=1,
+                 weight_decay=0.0005,
                  scope=''):
   """AlexNet from https://papers.nips.cc/paper/4824-imagenet-classification-with-deep-convolutional-neural-networks.
 
@@ -78,7 +78,7 @@ def alexnet(inputs,
     with scopes.arg_scope([ops.conv2d, ops.fc, ops.batch_norm, ops.dropout],
                           is_training=is_training):
       with scopes.arg_scope([ops.conv2d, ops.fc],
-                            weight_decay=0.0005, stddev=0.01, bias=0.1,
+                            weight_decay=weight_decay, stddev=0.01, bias=0.1,
                             weights_initializer=tf.truncated_normal_initializer):
         with scopes.arg_scope([ops.conv2d],
                               stride=1, padding='SAME'):
@@ -139,7 +139,7 @@ def alexnet(inputs,
 slim = tf.contrib.slim
 #trunc_normal = lambda stddev: tf.truncated_normal_initializer(0.0, stddev,seed=1)
 
-def _alexnet_v2_arg_scope(weight_decay=0.0005):
+def _alexnet_v2_arg_scope(weight_decay):
   with slim.arg_scope([slim.conv2d, slim.fully_connected],
                       activation_fn=tf.nn.relu,
                       biases_initializer=tf.constant_initializer(0.1),
@@ -237,8 +237,9 @@ def alexnet_v2(inputs,
                 is_training=True,
                restore_logits=True,
                seed=1,
+               weight_decay=0.0005,
                scope='alexnet_v2'):
-  with slim.arg_scope(_alexnet_v2_arg_scope()):
+  with slim.arg_scope(_alexnet_v2_arg_scope(weight_decay)):
     return _alexnet_v2(inputs,
                dropout_keep_prob=dropout_keep_prob,
                num_classes=num_classes,
@@ -248,7 +249,7 @@ def alexnet_v2(inputs,
                scope=scope)
 
 
-def _vgg_arg_scope(weight_decay=0.0005):
+def _vgg_arg_scope(weight_decay):
   """Defines the VGG arg scope.
   Args:
     weight_decay: The l2 regularization coefficient.
@@ -340,9 +341,10 @@ def vgg_16(inputs,
            num_classes=1000,
            is_training=True,
             restore_logits=True,
+            weight_decay=0.0005,
            seed=1,
            scope='vgg_16'):
-  with slim.arg_scope(_vgg_arg_scope()):
+  with slim.arg_scope(_vgg_arg_scope(weight_decay)):
     return _vgg_16(inputs,
             dropout_keep_prob=dropout_keep_prob,
            num_classes=num_classes,
@@ -420,13 +422,14 @@ def _vgg_a(inputs,
 _vgg_a.default_image_size = 224
 
 def vgg_a(inputs,
-            dropout_keep_prob=0.5,
+           dropout_keep_prob=0.5,
            num_classes=1000,
            is_training=True,
-            restore_logits=True,
+           restore_logits=True,
            seed=1,
+           weight_decay=0.0005,
            scope='vgg_a'):
-  with slim.arg_scope(_vgg_arg_scope()):
+  with slim.arg_scope(_vgg_arg_scope(weight_decay)):
     return _vgg_a(inputs,
             dropout_keep_prob=dropout_keep_prob,
             num_classes=num_classes,
@@ -441,6 +444,7 @@ def cifar10_alexnet(inputs,
                  num_classes=10,
                  is_training=True,
                  restore_logits=True,
+                 weight_decay=0.004,
                  seed=1,
                  scope=''):
   """AlexNet on cifar10 from https://www.tensorflow.org/tutorials/deep_cnn
@@ -481,9 +485,9 @@ def cifar10_alexnet(inputs,
 
 
             end_points['pool2'] = ops.flatten(end_points['pool2'], scope='flatten')
-            end_points['fc3'] = ops.fc(end_points['pool2'], 384, stddev=0.04, weight_decay=0.004, bias=0.1,
+            end_points['fc3'] = ops.fc(end_points['pool2'], 384, stddev=0.04, weight_decay=weight_decay, bias=0.1,
                                        seed = seed +3, scope='fc3')
-            net = ops.fc(end_points['fc3'], 192, stddev=0.04, weight_decay=0.004, bias=0.1,
+            net = ops.fc(end_points['fc3'], 192, stddev=0.04, weight_decay=weight_decay, bias=0.1,
                          seed=seed + 4, scope='fc4')
 
             # Final pooling and prediction

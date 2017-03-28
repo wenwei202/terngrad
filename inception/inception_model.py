@@ -34,6 +34,8 @@ FLAGS = tf.app.flags.FLAGS
 
 tf.app.flags.DEFINE_integer('seed', 1,
                             """The same seed across all towers.""")
+tf.app.flags.DEFINE_float('weight_decay', 0.0005,
+                          """Weight decay of regularization.""")
 
 # If a model is trained using multiple GPUs, prefix all Op names with tower_name
 # to differentiate the operations. Note that this prefix is removed from the
@@ -78,7 +80,7 @@ def inference(images, num_classes, net='alexnet', for_training=False, restore_lo
   if batch_norm_params:
     print("Info: batch_norm_params is added on conv")
   # Set weight_decay for weights in Conv and FC layers.
-  with slim.arg_scope([slim.ops.conv2d, slim.ops.fc], weight_decay=0.00004):
+  with slim.arg_scope([slim.ops.conv2d, slim.ops.fc], weight_decay=FLAGS.weight_decay): # default 0.00004 for inception_v3
     with slim.arg_scope([slim.ops.conv2d],
                         stddev=0.1,
                         activation=tf.nn.relu,
@@ -101,6 +103,7 @@ def inference(images, num_classes, net='alexnet', for_training=False, restore_lo
               is_training=for_training,
               restore_logits=restore_logits,
               seed=FLAGS.seed,
+              weight_decay=FLAGS.weight_decay,
               scope=scope)
       #else:
       #    raise ValueError("Wrong net type:{}".format(net))

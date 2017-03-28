@@ -72,6 +72,8 @@ tf.app.flags.DEFINE_float('num_epochs_per_decay', 20.0,
                           """Epochs after which learning rate decays.""")
 tf.app.flags.DEFINE_float('learning_rate_decay_factor', 0.1,
                           """Learning rate decay factor.""")
+tf.app.flags.DEFINE_float('momentum', 0.9,
+                          """The momentum value of optimizer.""")
 
 # Configurations for BinGrad
 tf.app.flags.DEFINE_integer('grad_bits', 32,
@@ -86,7 +88,7 @@ tf.app.flags.DEFINE_bool('benchmark_mode', False,
 
 # Constants dictating the learning rate schedule.
 RMSPROP_DECAY = 0.9                # Decay term for RMSProp.
-RMSPROP_MOMENTUM = 0.9             # Momentum in RMSProp.
+# RMSPROP_MOMENTUM = 0.9             # Momentum in RMSProp.
 RMSPROP_EPSILON = 1.0              # Epsilon term for RMSProp.
 
 
@@ -238,12 +240,12 @@ def train(dataset):
     if ('gd' == FLAGS.optimizer):
         opt = tf.train.GradientDescentOptimizer(lr)
     elif ('momentum' == FLAGS.optimizer):
-        opt = tf.train.MomentumOptimizer(lr, 0.9)
+        opt = tf.train.MomentumOptimizer(lr, FLAGS.momentum)
     elif ('adam' == FLAGS.optimizer):
         opt = tf.train.AdamOptimizer(lr)
     elif ('rmsprop' == FLAGS.optimizer):
         opt = tf.train.RMSPropOptimizer(lr, RMSPROP_DECAY,
-              momentum=RMSPROP_MOMENTUM,
+              momentum=FLAGS.momentum,
               epsilon=RMSPROP_EPSILON)
     else:
         raise ValueError("Wrong optimizer!")
