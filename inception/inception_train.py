@@ -446,14 +446,28 @@ def train(dataset):
     sess = tf.Session(config=config)
     sess.run(init)
 
+    trained_step = 0
     if FLAGS.pretrained_model_checkpoint_path:
       assert tf.gfile.Exists(FLAGS.pretrained_model_checkpoint_path)
-      variables_to_restore = tf.get_collection(
-          slim.variables.VARIABLES_TO_RESTORE)
-      restorer = tf.train.Saver(variables_to_restore)
-      restorer.restore(sess, FLAGS.pretrained_model_checkpoint_path)
-      print('%s: Pre-trained model restored from %s' %
-            (datetime.now(), FLAGS.pretrained_model_checkpoint_path))
+      ckpt = tf.train.get_checkpoint_state(FLAGS.pretrained_model_checkpoint_path)
+      if ckpt and ckpt.model_checkpoint_path:
+        trained_step = ckpt.model_checkpoint_path.split('/')[-1].split('-')[-1]
+        trained_step = int(trained_step) + 1
+        variables_to_restore = tf.get_collection(
+            slim.variables.VARIABLES_TO_RESTORE)+ \
+                               tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES)
+        restorer = tf.train.Saver(variables_to_restore)
+        if os.path.isabs(ckpt.model_checkpoint_path):
+          restorer.restore(sess, ckpt.model_checkpoint_path)
+        else:
+          restorer.restore(sess, os.path.join(FLAGS.pretrained_model_checkpoint_path,
+                                         ckpt.model_checkpoint_path))
+        print('%s: Pre-trained model restored from %s' %
+              (datetime.now(), FLAGS.pretrained_model_checkpoint_path))
+      else:
+        print('%s: Restoring pre-trained model from %s failed!' %
+              (datetime.now(), FLAGS.pretrained_model_checkpoint_path))
+        exit()
 
     # Start the queue runners.
     tf.train.start_queue_runners(sess=sess)
@@ -462,7 +476,7 @@ def train(dataset):
         FLAGS.train_dir,
         graph=tf.get_default_graph())
 
-    for step in range(FLAGS.max_steps):
+    for step in range(trained_step, FLAGS.max_steps):
       start_time = time.time()
       _, entropy_loss_value, reg_loss_value = sess.run([train_op, entropy_loss, reg_loss])
       duration = time.time() - start_time

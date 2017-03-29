@@ -5,6 +5,7 @@ set -x
 DATASET_NAME=cifar10 # imagenet or cifar10
 ROOT_WORKSPACE=${HOME}/dataset/results/cifar10/ # the location to store summary and logs
 DATA_DIR=${HOME}/dataset/${DATASET_NAME}-data # dataset location
+FINETUNED_MODEL_PATH=
 NUM_GPUS=2
 export CUDA_VISIBLE_DEVICES=0,1 # specify visible gpus to tensorflow
 OPTIMIZER=momentum
@@ -66,6 +67,7 @@ bazel-bin/inception/${DATASET_NAME}_eval \
 
 bazel-bin/inception/${DATASET_NAME}_train \
 --seed ${SEED}  \
+--pretrained_model_checkpoint_path "${FINETUNED_MODEL_PATH}" \
 --num_epochs_per_decay ${NUM_EPOCHS_PER_DECAY} \
 --initial_learning_rate ${BASE_LR} \
 --grad_bits ${GRAD_BITS} \
