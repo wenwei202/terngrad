@@ -72,13 +72,14 @@ def alexnet(inputs,
   """
   # end_points will collect relevant activations for external use, for example
   # summaries or losses.
-  # print ("INFO: batch norm in alexnet is disabled")
+  print ("INFO: batch norm in alexnet is disabled")
   end_points = {}
   with tf.name_scope(scope, 'alexnet', [inputs]):
     with scopes.arg_scope([ops.conv2d, ops.fc, ops.batch_norm, ops.dropout],
                           is_training=is_training):
       with scopes.arg_scope([ops.conv2d, ops.fc],
                             weight_decay=weight_decay, stddev=0.01, bias=0.1,
+                            batch_norm_params=None,
                             weights_initializer=tf.truncated_normal_initializer):
         with scopes.arg_scope([ops.conv2d],
                               stride=1, padding='SAME'):
