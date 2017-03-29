@@ -284,6 +284,8 @@ def train(dataset):
     tower_scalers = []
     tower_reg_grads = []
     reuse_variables = None
+    tower_entropy_losses = []
+    tower_reg_losses = []
     for i in range(FLAGS.num_gpus):
       with tf.device('/gpu:%d' % i):
         with tf.name_scope('%s_%d' % (inception.TOWER_NAME, i)) as scope:
@@ -296,6 +298,8 @@ def train(dataset):
               # variables across all towers.
               loss, entropy_loss, reg_loss = _tower_loss(images_splits[i], labels_splits[i], num_classes,
                                  scope, reuse_variables)
+            tower_entropy_losses.append(entropy_loss)
+            tower_reg_losses.append(reg_loss)
 
             # Reuse variables for the next tower?
             reuse_variables = None
@@ -333,9 +337,9 @@ def train(dataset):
       # We must calculate the mean of each scaler. Note that this is the
       # synchronization point across all towers @ CPU.
       mean_scalers = bingrad_common.average_scalers(tower_scalers)
-      for mscaler in mean_scalers:
-        if mscaler is not None:
-          tf.summary.scalar(mscaler.op.name + '/mean_scaler', mscaler)
+      # for mscaler in mean_scalers:
+      #   if mscaler is not None:
+      #     tf.summary.scalar(mscaler.op.name + '/mean_scaler', mscaler)
 
       # gradient clipping and binarizing
       # @ GPUs
@@ -427,6 +431,14 @@ def train(dataset):
       saver = tf.train.Saver(var_dic)
     else:
       saver = tf.train.Saver(tf.global_variables())
+
+    # average loss summaries
+    avg_entropy_loss = tf.reduce_mean(tower_entropy_losses)
+    avg_reg_loss = tf.reduce_mean(tower_reg_losses)
+    avg_total_loss = tf.add(avg_entropy_loss, avg_reg_loss)
+    tf.summary.scalar('avg_entropy_loss', avg_entropy_loss)
+    tf.summary.scalar('avg_reg_loss', avg_reg_loss)
+    tf.summary.scalar('avg_total_loss', avg_total_loss)
 
     summaries = tf.get_collection(tf.GraphKeys.SUMMARIES)
 
