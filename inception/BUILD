@@ -57,9 +57,19 @@ py_library(
 )
 
 py_library(
+    name = "vgg_preprocessing",
+    srcs = [
+        "vgg_preprocessing.py",
+    ],
+)
+
+py_library(
     name = "image_processing",
     srcs = [
         "image_processing.py",
+    ],
+    deps = [
+        ":vgg_preprocessing",
     ],
 )
 

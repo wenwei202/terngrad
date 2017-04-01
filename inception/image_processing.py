@@ -41,6 +41,8 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
+import inception.vgg_preprocessing as vgg_prep
+import re
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -545,6 +547,8 @@ def image_preprocessing(image_buffer, bbox, train, thread_id=0, image_format='JP
     elif FLAGS.dataset_name == 'imagenet':
       if FLAGS.net == 'alexnet':
         image = distort_alexnet_image(image, height, width, bbox, thread_id=thread_id, add_summary=add_summary)
+      elif re.compile('^vgg.*').match(FLAGS.net):
+        image = vgg_prep.preprocess_image(image, height, width, is_training=True)
       else:
         image = distort_image(image, height, width, bbox, thread_id=thread_id, add_summary=add_summary)
     else:
@@ -555,6 +559,8 @@ def image_preprocessing(image_buffer, bbox, train, thread_id=0, image_format='JP
     elif FLAGS.dataset_name == 'imagenet':
       if FLAGS.net == 'alexnet':
         image = eval_alexnet_image(image, height, width)
+      elif re.compile('^vgg.*').match(FLAGS.net):
+        image = vgg_prep.preprocess_image(image, height, width, is_training=False)
       else:
         image = eval_image(image, height, width)
     else:
