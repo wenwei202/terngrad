@@ -80,6 +80,8 @@ tf.app.flags.DEFINE_integer('grad_bits', 32,
                             """The number of gradient bits.""")
 tf.app.flags.DEFINE_float('clip_factor', 0.0,
                             """The factor of stddev to clip gradients.""")
+tf.app.flags.DEFINE_integer('floating_grad_epoch', 0,
+                            """Performing floating gradients every # epochs. 0 means bingrad is always used.""")
 tf.app.flags.DEFINE_integer('save_tower', -1,
                             """Save the variables in a specific tower. -1 refers all towers""")
 
@@ -280,6 +282,7 @@ def train(dataset):
 
     # Calculate the gradients for each model tower.
     tower_grads = [] # gradients of cross entropy or total cost for each tower
+    tower_floating_grads = []  # gradients of cross entropy or total cost for each tower
     tower_batchnorm_updates = []
     tower_scalers = []
     tower_reg_grads = []
@@ -318,6 +321,7 @@ def train(dataset):
 
             # Keep track of the gradients across all towers.
             tower_grads.append(grads)
+            tower_floating_grads.append(grads)
 
             # Calculate the scalers of binary gradients
             if 1 == FLAGS.grad_bits:
@@ -363,7 +367,20 @@ def train(dataset):
               tower_grads[i], mean_scalers)
 
       for grads in tower_grads:
-        _gradient_summary(grads, 'binary')
+        _gradient_summary(grads, 'binary', add_sparsity=True)
+
+    # Switch between binarized and floating gradients
+    if (FLAGS.floating_grad_epoch>0) and (1 == FLAGS.grad_bits):
+      epoch_remainder = tf.mod( ( (global_step / FLAGS.num_gpus) * FLAGS.batch_size) / dataset.num_examples_per_epoch(),
+             FLAGS.floating_grad_epoch)
+      for i in xrange(FLAGS.num_gpus):
+        _, selected_variables = zip( *(tower_floating_grads[i]) )
+        selected_gradients = []
+        for j in range(len(tower_floating_grads[i])):
+          selected_gradients.append( tf.cond(tf.equal(tf.to_int32(tf.floor(epoch_remainder)), tf.to_int32(FLAGS.floating_grad_epoch-1)),
+                                lambda: tower_floating_grads[i][j][0],
+                                lambda: tower_grads[i][j][0]) )
+        tower_grads[i] = list(zip(selected_gradients, selected_variables))
 
     # We must calculate the mean of each gradient. Note that this is the
     # synchronization point across all towers @ CPU.
