@@ -131,11 +131,13 @@ def _tower_loss(images, labels, num_classes, scope, reuse_variables=None):
   # Assemble all of the losses for the current tower only.
   losses = tf.get_collection(slim.losses.LOSSES_COLLECTION, scope)
 
-  # Calculate the total loss for the current tower.
-  regularization_losses = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES, scope)
   #total_loss = tf.add_n(losses + regularization_losses, name='total_loss')
   total_cross_entropy_loss = tf.add_n(losses, name='total_cross_entropy_loss')
-  total_regularization_loss = tf.add_n(regularization_losses, name='total_regularization_loss')
+  total_regularization_loss = tf.constant(0.0)
+  # Calculate the total loss for the current tower.
+  regularization_losses = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES, scope)
+  if regularization_losses:
+    total_regularization_loss = tf.add_n(regularization_losses, name='total_regularization_loss')
   total_loss = tf.add(total_cross_entropy_loss,
                       total_regularization_loss,
                       name='total_loss')
@@ -331,8 +333,9 @@ def train(dataset):
               tower_scalers.append(scalers)
 
             # regularization gradients
-            reg_grads = opt.compute_gradients(reg_loss, tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope=scope))
-            tower_reg_grads.append(reg_grads)
+            if FLAGS.weight_decay:
+              reg_grads = opt.compute_gradients(reg_loss, tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope=scope))
+              tower_reg_grads.append(reg_grads)
 
     if 1 == FLAGS.grad_bits:
       for grads in tower_grads:
@@ -405,8 +408,9 @@ def train(dataset):
           # apply data loss SGD. global_step is incremented by FLAGS.num_gpus per iter
           apply_gradient_op.append(opt.apply_gradients(tower_grads[i],
                                           global_step=global_step))
-          # apply regularization, global_step is omitted to avoid incrementation
-          apply_gradient_op.append(opt.apply_gradients(tower_reg_grads[i]))
+          if FLAGS.weight_decay:
+            # apply regularization, global_step is omitted to avoid incrementation
+            apply_gradient_op.append(opt.apply_gradients(tower_reg_grads[i]))
 
     # Add histograms for trainable variables.
     for var in tf.trainable_variables():
