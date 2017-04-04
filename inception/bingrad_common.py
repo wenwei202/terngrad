@@ -27,6 +27,33 @@ tf.app.flags.DEFINE_string('net', 'alexnet',
 tf.app.flags.DEFINE_integer('size_to_binarize', 1,
                             """The min number of parameters to enable binarizing.""")
 
+def ternary_encoder(input_data):
+  """Encoding and compressing the signs """
+  a = tf.sign(input_data) # -1, 0, 1
+  a = tf.add(a,1) # shift -1,0,1 to 0,1,2 (2'b00,2'b01,2'b10)
+  a = tf.reshape(a,[-1])
+  a_split1, a_split2, a_split3, a_split4 = tf.split(a,4) # assume the size is dividable by 4
+
+  # encode 4 grads into 1 Byte
+  sum_1 = tf.add(a_split1, a_split2*4)
+  sum_2 = tf.add(a_split3*16, a_split4*64)
+  sum_all = tf.add(sum_1, sum_2)
+  encoded = tf.cast(sum_all, tf.uint8)
+  return encoded
+
+def ternary_decoder(encoded_data, scaler, shape):
+  """Decoding the signs to float format """
+  a = tf.cast(encoded_data, tf.int32)
+  a_split1 = tf.mod(a,4)
+  a_split2 = tf.mod(a/4,4)
+  a_split3 = tf.mod(a/16,4)
+  a_split4 = tf.mod(a/64,4)
+  a = tf.concat([a_split1, a_split2, a_split3, a_split4], 0)
+  a = tf.reshape(a, shape)
+  a = tf.subtract(a,1)
+  decoded = tf.to_float(a)*scaler
+  return decoded
+
 def clip_gradients_by_stddev(grads_and_vars, clip_factor = 2.5):
     """ Clip gradients to [-clip_factor*stddev, clip_factor*stddev]."""
     gradients, variables = zip(*grads_and_vars)
