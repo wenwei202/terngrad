@@ -5,6 +5,9 @@ def ternary_encoder(input_data):
   a = tf.sign(input_data) # -1, 0, 1
   a = tf.add(a,1) # shift -1,0,1 to 0,1,2 (2'b00,2'b01,2'b10)
   a = tf.reshape(a,[-1])
+  pad_size = 4-tf.mod(tf.size(a),4)
+  pad = tf.range(0.0,pad_size)
+  a = tf.concat([a, pad], 0)
   a_split1, a_split2, a_split3, a_split4 = tf.split(a,4) # assume the size is dividable by 4
 
   # encode 4 grads into 1 Byte
@@ -22,13 +25,15 @@ def ternary_decoder(encoded_data, scaler, shape):
   a_split3 = tf.mod(a/16,4)
   a_split4 = tf.mod(a/64,4)
   a = tf.concat([a_split1, a_split2, a_split3, a_split4], 0)
+  real_size = tf.reduce_prod(shape)
+  a = tf.gather(a, tf.range(0,real_size))
   a = tf.reshape(a, shape)
   a = tf.subtract(a,1)
   decoded = tf.to_float(a)*scaler
   return decoded
 
 
-shape=[200, 10, 10, 10000/4]
+shape=[33, 33, 33, 333]
 scaler=0.002
 with tf.device('/gpu:1'):
   # binary gradient generator
