@@ -32,6 +32,9 @@ def ternary_encoder(input_data):
   a = tf.sign(input_data) # -1, 0, 1
   a = tf.add(a,1) # shift -1,0,1 to 0,1,2 (2'b00,2'b01,2'b10)
   a = tf.reshape(a,[-1])
+  pad_size = 4 - tf.mod(tf.size(a), 4)
+  pad = tf.range(0.0, pad_size)
+  a = tf.concat([a, pad], 0)
   a_split1, a_split2, a_split3, a_split4 = tf.split(a,4) # assume the size is dividable by 4
 
   # encode 4 grads into 1 Byte
@@ -45,14 +48,64 @@ def ternary_decoder(encoded_data, scaler, shape):
   """Decoding the signs to float format """
   a = tf.cast(encoded_data, tf.int32)
   a_split1 = tf.mod(a,4)
-  a_split2 = tf.mod(a/4,4)
-  a_split3 = tf.mod(a/16,4)
-  a_split4 = tf.mod(a/64,4)
+  a_split2 = tf.to_int32(tf.mod(a/4,4))
+  a_split3 = tf.to_int32(tf.mod(a/16,4))
+  a_split4 = tf.to_int32(tf.mod(a/64,4))
   a = tf.concat([a_split1, a_split2, a_split3, a_split4], 0)
+  real_size = tf.reduce_prod(shape)
+  a = tf.gather(a, tf.range(0,real_size))
+
   a = tf.reshape(a, shape)
   a = tf.subtract(a,1)
   decoded = tf.to_float(a)*scaler
   return decoded
+
+def encode_to_ternary_gradients(grads_and_vars, get_shape=False):
+  """Encode each gradient tensor."""
+  with tf.name_scope('ternary_encoder'):
+    gradients, variables = zip(*grads_and_vars)
+    ternary_gradients = []
+    gradient_shapes = []
+    for gradient in gradients:
+      if gradient is None:
+        ternary_gradients.append(None)
+        if get_shape:
+          gradient_shapes.append(None)
+        continue
+
+      if get_shape:
+        if isinstance(gradient, tf.IndexedSlices):
+          gradient_shape = gradient.dense_shape
+        else:
+          gradient_shape = gradient.get_shape()
+        gradient_shapes.append(gradient_shape)
+
+      ternary_gradient = tf.cond(tf.size(gradient) < FLAGS.size_to_binarize,
+                                 lambda: tf.bitcast(gradient, type=tf.uint8),
+                                 lambda: ternary_encoder(gradient))
+      ternary_gradients.append(ternary_gradient)
+
+    if get_shape:
+      return list(zip(ternary_gradients, variables)), gradient_shapes
+    else:
+      return list(zip(ternary_gradients, variables))
+
+def decode_from_ternary_gradients(grads_and_vars, scalers, shapes):
+  """Decode each gradient tensor."""
+  with tf.name_scope('ternary_decoder'):
+    gradients, variables = zip(*grads_and_vars)
+    floating_gradients = []
+    for gradient, variable, scaler, shape in zip(gradients, variables, scalers, shapes):
+      if gradient is None:
+        floating_gradients.append(None)
+      # gradient is encoded, so we use variable to check its size
+      # We also assume dtype of variable and gradient is the same
+      floating_gradient = tf.cond(tf.size(variable) < FLAGS.size_to_binarize,
+                                 lambda: tf.bitcast(gradient, variable.dtype),
+                                 lambda: ternary_decoder(gradient, scaler, shape))
+      floating_gradients.append(floating_gradient)
+
+    return list(zip(floating_gradients, variables))
 
 def clip_gradients_by_stddev(grads_and_vars, clip_factor = 2.5):
     """ Clip gradients to [-clip_factor*stddev, clip_factor*stddev]."""

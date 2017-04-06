@@ -84,6 +84,8 @@ tf.app.flags.DEFINE_integer('floating_grad_epoch', 0,
                             """Performing floating gradients every # epochs. 0 means bingrad is always used.""")
 tf.app.flags.DEFINE_integer('save_tower', -1,
                             """Save the variables in a specific tower. -1 refers all towers""")
+tf.app.flags.DEFINE_bool('use_encoding', False,
+                            """If use encoder-decoder to communicate. Current implementation is NOT inefficient.""")
 
 tf.app.flags.DEFINE_bool('benchmark_mode', False,
                             """benchmarking mode to test the scalability.""")
@@ -352,7 +354,7 @@ def train(dataset):
       # @ GPUs
       for i in xrange(FLAGS.num_gpus):
         with tf.device('/gpu:%d' % i):
-          with tf.name_scope('%s_%d' % (inception.TOWER_NAME, i)) as scope:
+          with tf.name_scope('clipper_%d' % (i)) as scope:
             # Clip and binarize gradients
             # and keep track of the gradients across all towers.
             tower_grads[i] = bingrad_common.clip_gradients_by_thresholds(
@@ -361,29 +363,47 @@ def train(dataset):
       for grads in tower_grads:
         _gradient_summary(grads, 'clipped')
 
+      gradient_shapes = []
       for i in xrange(FLAGS.num_gpus):
         with tf.device('/gpu:%d' % i):
-          with tf.name_scope('%s_%d' % (inception.TOWER_NAME, i)) as scope:
+          with tf.name_scope('binarizer_%d' % (i)) as scope:
             # Clip and binarize gradients
             # and keep track of the gradients across all towers.
             tower_grads[i] = bingrad_common.stochastical_binarize_gradients(
               tower_grads[i], mean_scalers)
+            _gradient_summary(tower_grads[i], 'binary', add_sparsity=True)
 
-      for grads in tower_grads:
-        _gradient_summary(grads, 'binary', add_sparsity=True)
+          if FLAGS.use_encoding:
+            # encoding
+            with tf.name_scope('encoder_%d' % (i)) as scope:
+              if 0==i:
+                tower_grads[i], gradient_shapes = \
+                  bingrad_common.encode_to_ternary_gradients(tower_grads[i], get_shape=True)
+              else:
+                tower_grads[i] = bingrad_common.encode_to_ternary_gradients(tower_grads[i], get_shape=False)
+
+    # decoding @ CPU
+    if (1 == FLAGS.grad_bits) and FLAGS.use_encoding:
+      with tf.name_scope('decoder') as scope:
+        for i in xrange(FLAGS.num_gpus):
+          tower_grads[i] = bingrad_common.decode_from_ternary_gradients(
+            tower_grads[i], mean_scalers,gradient_shapes)
 
     # Switch between binarized and floating gradients
     if (FLAGS.floating_grad_epoch>0) and (1 == FLAGS.grad_bits):
       epoch_remainder = tf.mod( ( (global_step / FLAGS.num_gpus) * FLAGS.batch_size) / dataset.num_examples_per_epoch(),
              FLAGS.floating_grad_epoch)
+      cond_op = tf.equal(tf.to_int32(tf.floor(epoch_remainder)), tf.to_int32(FLAGS.floating_grad_epoch-1))
       for i in xrange(FLAGS.num_gpus):
-        _, selected_variables = zip( *(tower_floating_grads[i]) )
-        selected_gradients = []
-        for j in range(len(tower_floating_grads[i])):
-          selected_gradients.append( tf.cond(tf.equal(tf.to_int32(tf.floor(epoch_remainder)), tf.to_int32(FLAGS.floating_grad_epoch-1)),
-                                lambda: tower_floating_grads[i][j][0],
-                                lambda: tower_grads[i][j][0]) )
-        tower_grads[i] = list(zip(selected_gradients, selected_variables))
+        with tf.name_scope('switcher_%d' % (i)) as scope:
+          _, selected_variables = zip( *(tower_floating_grads[i]) )
+          selected_gradients = []
+          for j in range(len(tower_floating_grads[i])):
+            selected_gradients.append( tf.cond(cond_op,
+                                  lambda: tower_floating_grads[i][j][0],
+                                  lambda: tower_grads[i][j][0]) )
+          tower_grads[i] = list(zip(selected_gradients, selected_variables))
+
 
     # We must calculate the mean of each gradient. Note that this is the
     # synchronization point across all towers @ CPU.
@@ -404,7 +424,7 @@ def train(dataset):
     apply_gradient_op = []
     for i in xrange(FLAGS.num_gpus):
       with tf.device('/gpu:%d' % i):
-        with tf.name_scope('%s_%d' % (inception.TOWER_NAME, i)) as scope:
+        with tf.name_scope('grad_applier_%d' % (i)) as scope:
           # apply data loss SGD. global_step is incremented by FLAGS.num_gpus per iter
           apply_gradient_op.append(opt.apply_gradients(tower_grads[i],
                                           global_step=global_step))
