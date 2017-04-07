@@ -85,7 +85,7 @@ tf.app.flags.DEFINE_integer('floating_grad_epoch', 0,
 tf.app.flags.DEFINE_integer('save_tower', -1,
                             """Save the variables in a specific tower. -1 refers all towers""")
 tf.app.flags.DEFINE_bool('use_encoding', False,
-                            """If use encoder-decoder to communicate. Current implementation is NOT inefficient.""")
+                            """If use encoder-decoder to communicate. Current implementation is NOT efficient.""")
 
 tf.app.flags.DEFINE_bool('benchmark_mode', False,
                             """benchmarking mode to test the scalability.""")
@@ -311,12 +311,12 @@ def train(dataset):
             # Reuse variables for the next tower?
             reuse_variables = None
 
-            # Retain the Batch Normalization updates operations only from the
-            # final tower. Ideally, we should grab the updates from all towers
-            # but these stats accumulate extremely fast so we can ignore the
-            # other stats from the other towers without significant detriment.
+            # Retain the Batch Normalization updates operations.
             batchnorm_updates = tf.get_collection(slim.ops.UPDATE_OPS_COLLECTION,
                                                 scope)
+            batchnorm_updates = batchnorm_updates + \
+                                tf.get_collection(tf.GraphKeys.UPDATE_OPS, scope)
+
             tower_batchnorm_updates.append(batchnorm_updates)
 
             # Calculate the gradients for the batch of data on this ImageNet
@@ -544,7 +544,7 @@ def train(dataset):
                             entropy_loss_value, reg_loss_value, entropy_loss_value+reg_loss_value,
                             examples_per_sec, duration))
 
-      if step % 1000 == 0:
+      if step % 2000 == 0:
         summary_str = sess.run(summary_op)
         summary_writer.add_summary(summary_str, step)
 

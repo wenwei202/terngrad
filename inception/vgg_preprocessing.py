@@ -362,6 +362,7 @@ def preprocess_image(image, output_height, output_width, is_training=False,
   Returns:
     A preprocessed image.
   """
+  image = tf.multiply(image, 255.0)
   if is_training:
     return preprocess_for_train(image, output_height, output_width,
                                 resize_side_min, resize_side_max)

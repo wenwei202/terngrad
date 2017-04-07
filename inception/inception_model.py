@@ -36,6 +36,8 @@ tf.app.flags.DEFINE_integer('seed', 1,
                             """The same seed across all towers.""")
 tf.app.flags.DEFINE_float('weight_decay', 0.0005,
                           """Weight decay of regularization.""")
+tf.app.flags.DEFINE_float('dropout_keep_prob', 0.5,
+                          """The probability of keeping in dropout (Use 0.8 for inception_v2, and 0.5 for others).""")
 
 # If a model is trained using multiple GPUs, prefix all Op names with tower_name
 # to differentiate the operations. Note that this prefix is removed from the
@@ -88,7 +90,7 @@ def inference(images, num_classes, net='alexnet', for_training=False, restore_lo
       if net == 'inception_v3':
           logits, endpoints = slim.inception.inception_v3(
               images,
-              dropout_keep_prob=0.8,
+              dropout_keep_prob=FLAGS.dropout_keep_prob,
               num_classes=num_classes,
               is_training=for_training,
               restore_logits=restore_logits,
@@ -98,7 +100,7 @@ def inference(images, num_classes, net='alexnet', for_training=False, restore_lo
           method_to_call = getattr(slim.models, net)
           logits, endpoints = method_to_call(
               images,
-              dropout_keep_prob=0.5,
+              dropout_keep_prob=FLAGS.dropout_keep_prob,
               num_classes=num_classes,
               is_training=for_training,
               restore_logits=restore_logits,

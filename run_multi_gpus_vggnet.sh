@@ -17,6 +17,7 @@ CLIP_FACTOR=0.0 # 0.0 means no clipping
 # when GRAD_BITS=1 and FLOATING_GRAD_EPOCH>0, switch to floating gradients every FLOATING_GRAD_EPOCH epoch and then switch back
 FLOATING_GRAD_EPOCH=0 # 0 means no switching
 WEIGHT_DECAY=0.0005 # default - alexnet/vgg_a/vgg_16:0.0005, inception_v3:0.00004, cifar10_alexnet:0.004
+DROPOUT_KEEP_PROB=0.5 # The probability to keep in dropout
 MOMENTUM=0.9
 SIZE_TO_BINARIZE=1 # the min size of variable to enable binarizing. 1 means binarizing all variables when GRAD_BITS=1
 TRAIN_BATCH_SIZE=256 # total batch size
@@ -78,6 +79,7 @@ bazel-bin/inception/${DATASET_NAME}_train \
 --clip_factor ${CLIP_FACTOR} \
 --floating_grad_epoch ${FLOATING_GRAD_EPOCH} \
 --weight_decay ${WEIGHT_DECAY} \
+--dropout_keep_prob ${DROPOUT_KEEP_PROB} \
 --momentum ${MOMENTUM} \
 --size_to_binarize ${SIZE_TO_BINARIZE} \
 --optimizer ${OPTIMIZER} \

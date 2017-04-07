@@ -250,7 +250,8 @@ def alexnet_v2(inputs,
                scope=scope)
 
 
-def _vgg_arg_scope(weight_decay):
+def _vgg_arg_scope(weight_decay,
+                   is_training):
   """Defines the VGG arg scope.
   Args:
     weight_decay: The l2 regularization coefficient.
@@ -262,8 +263,9 @@ def _vgg_arg_scope(weight_decay):
                       weights_regularizer=slim.l2_regularizer(weight_decay),
                       weights_initializer=tf.contrib.layers.xavier_initializer(),
                       biases_initializer=tf.zeros_initializer()):
-    with slim.arg_scope([slim.conv2d], padding='SAME') as arg_sc:
-      return arg_sc
+    with slim.arg_scope([slim.batch_norm], is_training=is_training):
+      with slim.arg_scope([slim.conv2d], padding='SAME', normalizer_fn=slim.batch_norm) as arg_sc:
+        return arg_sc
 
 def _vgg_16(inputs,
             dropout_keep_prob=0.5,
@@ -345,7 +347,7 @@ def vgg_16(inputs,
             weight_decay=0.0005,
            seed=1,
            scope='vgg_16'):
-  with slim.arg_scope(_vgg_arg_scope(weight_decay)):
+  with slim.arg_scope(_vgg_arg_scope(weight_decay, is_training)):
     return _vgg_16(inputs,
             dropout_keep_prob=dropout_keep_prob,
            num_classes=num_classes,
@@ -362,7 +364,7 @@ def _vgg_a(inputs,
             restore_logits=True,
            seed=1,
            scope='vgg_a'):
-  """Oxford Net VGG 16-Layers version D Example.
+  """Oxford Net VGG 16-Layers version A Example.
   Note: To use in classification mode, resize input to 224x224.
   Args:
     inputs: a tensor of size [batch_size, height, width, channels].
@@ -430,7 +432,7 @@ def vgg_a(inputs,
            seed=1,
            weight_decay=0.0005,
            scope='vgg_a'):
-  with slim.arg_scope(_vgg_arg_scope(weight_decay)):
+  with slim.arg_scope(_vgg_arg_scope(weight_decay, is_training)):
     return _vgg_a(inputs,
             dropout_keep_prob=dropout_keep_prob,
             num_classes=num_classes,
