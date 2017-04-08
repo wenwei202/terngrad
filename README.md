@@ -164,7 +164,7 @@ you will not need to interact with the script again.
 
 ```shell
 # location of where to place the ImageNet data
-DATA_DIR=$HOME/imagenet-data
+DATA_DIR=$HOME/dataset/imagenet-data
 
 # build the preprocessing script.
 bazel build inception/download_and_preprocess_imagenet
