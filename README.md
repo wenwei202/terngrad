@@ -155,7 +155,7 @@ create an account and request an access key to download the data.
 
 After you have `USERNAME` and `PASSWORD`, you are ready to run our script. Make
 sure that your hard disk has at least 500 GB of free space for downloading and
-storing the data. Here we select `DATA_DIR=$HOME/imagenet-data` as such a
+storing the data. Here we select `DATA_DIR=$HOME/dataset/imagenet-data` as such a
 location but feel free to edit accordingly.
 
 When you run the below script, please enter *USERNAME* and *PASSWORD* when
