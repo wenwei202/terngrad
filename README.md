@@ -13,6 +13,23 @@ cd ${DATA_PATH}
 mv cifar10_test.tfrecord cifar10_validation.tfrecord
 ```
 
+# Download and generate ImageNet TFRecord
+
+Before generating, `RAW_PIXEL=True` in `./${TF_MODEL_ROOT}/inception/data/download_and_preprocess_imagenet.sh` can enable storing raw RGB pixels of images into TFRecord.
+Storing raw pixels can save JPG decoding time but burden storage read bandwidth. Set `RAW_PIXEL=True` if high-speed external storage (like SSD) is used but decoder like in CPU cannot feed as fast as training (like in multi-GPUs).
+```
+# location of where to place the ImageNet data
+# If ILSVRC2012_img_train.tar and ILSVRC2012_img_val.tar were downloaded before, 
+# copy them in ${DATA_DIR} to save time
+DATA_DIR=/tmp/
+
+# build the preprocessing script.
+bazel build inception/download_and_preprocess_imagenet
+
+# run it
+bazel-bin/inception/download_and_preprocess_imagenet "${DATA_DIR}"
+```
+
 # Build and run evaluating/training on cifar-10
 ```
 cd ./${TF_MODEL_ROOT}/bingrad
