@@ -53,6 +53,9 @@ if [ -z "$1" ]; then
   exit
 fi
 
+# Store images in raw pixel format (True) or jpeg format (False)
+RAW_PIXEL=False
+
 # Create the output and temporary directories.
 DATA_DIR="${1%/}"
 SCRATCH_DIR="${DATA_DIR}/raw-data/"
@@ -95,6 +98,7 @@ IMAGENET_METADATA_FILE="${WORK_DIR}/data/imagenet_metadata.txt"
 "${BUILD_SCRIPT}" \
   --train_directory="${TRAIN_DIRECTORY}" \
   --validation_directory="${VALIDATION_DIRECTORY}" \
+  --raw_pixel=${RAW_PIXEL} \
   --output_directory="${OUTPUT_DIRECTORY}" \
   --imagenet_metadata_file="${IMAGENET_METADATA_FILE}" \
   --labels_file="${LABELS_FILE}" \

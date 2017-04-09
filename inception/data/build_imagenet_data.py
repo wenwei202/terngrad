@@ -100,6 +100,8 @@ tf.app.flags.DEFINE_string('train_directory', '/tmp/',
                            'Training data directory')
 tf.app.flags.DEFINE_string('validation_directory', '/tmp/',
                            'Validation data directory')
+tf.app.flags.DEFINE_bool('raw_pixel', False,
+                           'If store images in raw pixels or jpeg format')
 tf.app.flags.DEFINE_string('output_directory', '/tmp/',
                            'Output data directory')
 
@@ -180,7 +182,7 @@ def _convert_to_example(filename, image_buffer, label, synset, human, bbox,
 
   Args:
     filename: string, path to an image file, e.g., '/path/to/example.JPG'
-    image_buffer: string, JPEG encoding of RGB image
+    image_buffer: string, JPEG encoding of RGB image. Or decoded raw rgb
     label: integer, identifier for the ground truth for the network
     synset: string, unique WordNet ID specifying the label, e.g., 'n02323233'
     human: string, human-readable label, e.g., 'red fox, Vulpes vulpes'
@@ -204,7 +206,10 @@ def _convert_to_example(filename, image_buffer, label, synset, human, bbox,
 
   colorspace = 'RGB'
   channels = 3
-  image_format = 'JPEG'
+  if FLAGS.raw_pixel:
+    image_format = 'RAW'
+  else:
+    image_format = 'JPEG'
 
   example = tf.train.Example(features=tf.train.Features(feature={
       'image/height': _int64_feature(height),
@@ -334,8 +339,10 @@ def _process_image(filename, coder):
   height = image.shape[0]
   width = image.shape[1]
   assert image.shape[2] == 3
-
-  return image_data, height, width
+  if FLAGS.raw_pixel:
+    return image.tostring(), height, width
+  else:
+    return image_data, height, width
 
 
 def _process_image_files_batch(coder, thread_index, ranges, name, filenames,

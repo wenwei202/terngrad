@@ -43,6 +43,7 @@ from __future__ import print_function
 import tensorflow as tf
 import inception.vgg_preprocessing as vgg_prep
 import re
+import numpy as np
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -176,6 +177,26 @@ def distorted_inputs(dataset, batch_size=None, num_preprocess_threads=None):
         num_readers=FLAGS.num_readers)
   return images, labels
 
+def decode_raw(image_buffer, orig_height, orig_width, scope=None):
+  """Decode a RAW string into one 3-D float image Tensor.
+
+  Args:
+    image_buffer: scalar string Tensor.
+    [orig_height, orig_width]: the size of original image
+    scope: Optional scope for op_scope.
+  Returns:
+    3-D float Tensor with values ranging from [0, 1).
+  """
+  with tf.op_scope([image_buffer], scope, 'decode_raw'):
+    # Decode the string as an raw RGB.
+    image = tf.decode_raw(image_buffer, tf.uint8)
+
+    image = tf.reshape(image, tf.concat([orig_height,orig_width,[3]],0))
+
+    # After this point, all image pixels reside in [0,1)
+    # The various adjust_* ops all require this range for dtype float.
+    image = tf.image.convert_image_dtype(image, dtype=tf.float32)
+    return image
 
 def decode_jpeg(image_buffer, scope=None):
   """Decode a JPEG string into one 3-D float image Tensor.
@@ -208,7 +229,7 @@ def decode_png(image_buffer, scope=None):
   Returns:
     3-D float Tensor with values ranging from [0, 1).
   """
-  with tf.op_scope([image_buffer], scope, 'decode_jpeg'):
+  with tf.op_scope([image_buffer], scope, 'decode_png'):
     # Decode the string as an RGB JPEG.
     # Note that the resulting image contains an unknown height and width
     # that is set dynamically by decode_jpeg. In other words, the height
@@ -514,7 +535,8 @@ def eval_alexnet_image(image, height, width, scope=None):
     image = _mean_image_subtraction(image, [_R_MEAN, _G_MEAN, _B_MEAN])
     return image
 
-def image_preprocessing(image_buffer, bbox, train, thread_id=0, image_format='JPEG', add_summary=False):
+def image_preprocessing(image_buffer, bbox, train, thread_id=0, image_format='JPEG',
+                        orig_height=-1, orig_width=-1, add_summary=False):
   """Decode and preprocess one image for evaluation or training.
 
   Args:
@@ -534,10 +556,13 @@ def image_preprocessing(image_buffer, bbox, train, thread_id=0, image_format='JP
   if bbox is None:
     raise ValueError('Please supply a bounding box.')
 
-  # image = decode_jpeg(image_buffer)
   image = tf.cond(tf.equal('png', image_format),
                   lambda: decode_png(image_buffer),
-                  lambda: decode_jpeg(image_buffer))
+                  lambda: tf.cond(tf.equal('RAW',image_format),
+                                  lambda: decode_raw(image_buffer, orig_height, orig_width),
+                                  lambda: decode_jpeg(image_buffer)
+                                  ))
+
   height = FLAGS.image_size
   width = FLAGS.image_size
 
@@ -566,14 +591,6 @@ def image_preprocessing(image_buffer, bbox, train, thread_id=0, image_format='JP
     else:
       raise ValueError("Wrong dataset_name!")
 
-  # Finally, rescale to [-1,1] instead of [0, 1)
-  #if 'cifar10' != FLAGS.dataset_name:
-  #  if 'alexnet' == FLAGS.net:
-  #    image = tf.subtract(image, 0.5)
-  #    image = tf.multiply(image, 255.0)
-  #  else:
-  #    image = tf.subtract(image, 0.5)
-  #    image = tf.multiply(image, 2.0)
   return image
 
 
@@ -614,6 +631,12 @@ def parse_example_proto(example_serialized):
   """
   # Dense features in Example proto.
   feature_map = {
+      'image/height': tf.FixedLenFeature([1], dtype=tf.int64,
+                                              default_value=-1),
+      'image/width': tf.FixedLenFeature([1], dtype=tf.int64,
+                                              default_value=-1),
+      'image/channels': tf.FixedLenFeature([1], dtype=tf.int64,
+                                              default_value=-1),
       'image/encoded': tf.FixedLenFeature([], dtype=tf.string,
                                           default_value=''),
       'image/class/label': tf.FixedLenFeature([1], dtype=tf.int64,
@@ -634,13 +657,15 @@ def parse_example_proto(example_serialized):
   features = tf.parse_single_example(example_serialized, feature_map)
   label = tf.cast(features['image/class/label'], dtype=tf.int32)
 
+  height = tf.cast(features['image/height'], dtype=tf.int32)
+  width = tf.cast(features['image/width'], dtype=tf.int32)
+
   xmin = tf.expand_dims(features['image/object/bbox/xmin'].values, 0)
   ymin = tf.expand_dims(features['image/object/bbox/ymin'].values, 0)
   xmax = tf.expand_dims(features['image/object/bbox/xmax'].values, 0)
   ymax = tf.expand_dims(features['image/object/bbox/ymax'].values, 0)
 
   # Note that we impose an ordering of (y, x) just to make life difficult.
-  #bbox = tf.concat(0, [ymin, xmin, ymax, xmax])
   bbox = tf.concat([ymin, xmin, ymax, xmax], 0)
 
   # Force the variable number of bounding boxes into the shape
@@ -648,7 +673,7 @@ def parse_example_proto(example_serialized):
   bbox = tf.expand_dims(bbox, 0)
   bbox = tf.transpose(bbox, [0, 2, 1])
 
-  return features['image/encoded'], label, bbox, features['image/class/text'], features['image/format']
+  return features['image/encoded'], label, bbox, features['image/class/text'], features['image/format'], height, width
 
 
 def batch_inputs(dataset, batch_size, train, num_preprocess_threads=None,
@@ -734,10 +759,10 @@ def batch_inputs(dataset, batch_size, train, num_preprocess_threads=None,
     for thread_id in range(num_preprocess_threads):
 
       # Parse a serialized Example proto to extract the image and metadata.
-      image_buffer, label_index, bbox, _, image_format = parse_example_proto(
+      image_buffer, label_index, bbox, _, image_format, orig_height, orig_width = parse_example_proto(
           example_serialized)
       image = image_preprocessing(image_buffer, bbox, train, thread_id,
-                                  image_format=image_format, add_summary=add_summary)
+                image_format=image_format, orig_height=orig_height, orig_width=orig_width, add_summary=add_summary)
       images_and_labels.append([image, label_index])
 
     images, label_index_batch = tf.train.batch_join(
