@@ -12,6 +12,16 @@ py_library(
     srcs = ["scopes.py"],
 )
 
+py_library(
+    name = "inception_utils",
+    srcs = ["inception_utils.py"],
+)
+
+py_library(
+    name = "inception_v1",
+    srcs = ["inception_v1.py"],
+)
+
 py_test(
     name = "scopes_test",
     size = "small",
@@ -85,6 +95,8 @@ py_library(
     name = "models",
     srcs = ["models.py"],
     deps = [
+        "inception_utils",
+        "inception_v1",
         ":ops",
         ":scopes",
     ],
