@@ -352,42 +352,40 @@ def train(dataset):
 
       # gradient clipping and binarizing
       # @ GPUs
-      for i in xrange(FLAGS.num_gpus):
-        with tf.device('/gpu:%d' % i):
-          with tf.name_scope('clipper_%d' % (i)) as scope:
-            # Clip and binarize gradients
-            # and keep track of the gradients across all towers.
-            tower_grads[i] = bingrad_common.clip_gradients_by_thresholds(
-              tower_grads[i],mean_scalers)
-            
-      for grads in tower_grads:
-        _gradient_summary(grads, 'clipped')
+      #for i in xrange(FLAGS.num_gpus):
+      #  with tf.device('/gpu:%d' % i):
+      #    with tf.name_scope('clipper_%d' % (i)) as scope:
+      #      # Clip and binarize gradients
+      #      # and keep track of the gradients across all towers.
+      #      tower_grads[i][:-2] = bingrad_common.clip_gradients_by_thresholds(
+      #        tower_grads[i][:-2],mean_scalers[:-2])
+      #      _gradient_summary(tower_grads[i], 'clipped')
 
-      gradient_shapes = []
+      grad_shapes_for_deocder = []
       for i in xrange(FLAGS.num_gpus):
         with tf.device('/gpu:%d' % i):
           with tf.name_scope('binarizer_%d' % (i)) as scope:
             # Clip and binarize gradients
             # and keep track of the gradients across all towers.
-            tower_grads[i] = bingrad_common.stochastical_binarize_gradients(
-              tower_grads[i], mean_scalers)
+            tower_grads[i][:-2] = bingrad_common.stochastical_binarize_gradients(
+              tower_grads[i][:-2], mean_scalers[:-2])
             _gradient_summary(tower_grads[i], 'binary', add_sparsity=True)
 
           if FLAGS.use_encoding:
             # encoding
             with tf.name_scope('encoder_%d' % (i)) as scope:
               if 0==i:
-                tower_grads[i], gradient_shapes = \
-                  bingrad_common.encode_to_ternary_gradients(tower_grads[i], get_shape=True)
+                tower_grads[i][:-2], grad_shapes_for_deocder = \
+                  bingrad_common.encode_to_ternary_gradients(tower_grads[i][:-2], get_shape=True)
               else:
-                tower_grads[i] = bingrad_common.encode_to_ternary_gradients(tower_grads[i], get_shape=False)
+                tower_grads[i][:-2] = bingrad_common.encode_to_ternary_gradients(tower_grads[i][:-2], get_shape=False)
 
     # decoding @ CPU
     if (1 == FLAGS.grad_bits) and FLAGS.use_encoding:
       with tf.name_scope('decoder') as scope:
         for i in xrange(FLAGS.num_gpus):
-          tower_grads[i] = bingrad_common.decode_from_ternary_gradients(
-            tower_grads[i], mean_scalers,gradient_shapes)
+          tower_grads[i][:-2] = bingrad_common.decode_from_ternary_gradients(
+            tower_grads[i][:-2], mean_scalers[:-2], grad_shapes_for_deocder)
 
     # Switch between binarized and floating gradients
     if (FLAGS.floating_grad_epoch>0) and (1 == FLAGS.grad_bits):

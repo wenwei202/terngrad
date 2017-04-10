@@ -157,11 +157,9 @@ def stochastical_binarize_gradients(grads_and_vars, scalers):
 
     zeros = tf.zeros(gradient_shape)
     abs_gradient = tf.abs(gradient)
-    # max_abs_gradient = tf.reduce_max( abs_gradient )
     sign_gradient = tf.sign( gradient )
     rnd_sample = tf.random_uniform(gradient_shape,0,scaler)
     where_cond = tf.less(rnd_sample, abs_gradient)
-    #binarized_gradient = tf.where(where_cond, sign_gradient * scaler, zeros)
     binarized_gradient = tf.cond(tf.size(gradient) < FLAGS.size_to_binarize,
                                lambda: gradient,
                                lambda: tf.where(where_cond, sign_gradient * scaler, zeros))
