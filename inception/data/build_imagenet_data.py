@@ -95,6 +95,7 @@ import threading
 
 import numpy as np
 import tensorflow as tf
+import scipy.misc as sm
 
 tf.app.flags.DEFINE_string('train_directory', '/tmp/',
                            'Training data directory')
@@ -102,6 +103,8 @@ tf.app.flags.DEFINE_string('validation_directory', '/tmp/',
                            'Validation data directory')
 tf.app.flags.DEFINE_bool('raw_pixel', False,
                            'If store images in raw pixels or jpeg format')
+tf.app.flags.DEFINE_integer('resize_dimen', 0,
+                           'When raw_pixel=True, resize images to the specific size.')
 tf.app.flags.DEFINE_string('output_directory', '/tmp/',
                            'Output data directory')
 
@@ -340,7 +343,11 @@ def _process_image(filename, coder):
   width = image.shape[1]
   assert image.shape[2] == 3
   if FLAGS.raw_pixel:
-    return image.tostring(), height, width
+    if FLAGS.resize_dimen>0:
+      image = sm.imresize(image,(FLAGS.resize_dimen, FLAGS.resize_dimen), mode='RGB')
+      return image.tostring(), FLAGS.resize_dimen, FLAGS.resize_dimen
+    else:
+      return image.tostring(), height, width
   else:
     return image_data, height, width
 

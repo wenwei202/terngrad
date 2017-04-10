@@ -55,6 +55,8 @@ fi
 
 # Store images in raw pixel format (True) or jpeg format (False)
 RAW_PIXEL=False
+# When RAW_PIXEL=True and RESIZE_DIMEN>0, resize images to the specific size without preserving original height/width ratio
+RESIZE_DIMEN=0
 
 # Create the output and temporary directories.
 DATA_DIR="${1%/}"
@@ -99,6 +101,7 @@ IMAGENET_METADATA_FILE="${WORK_DIR}/data/imagenet_metadata.txt"
   --train_directory="${TRAIN_DIRECTORY}" \
   --validation_directory="${VALIDATION_DIRECTORY}" \
   --raw_pixel=${RAW_PIXEL} \
+  --resize_dimen ${RESIZE_DIMEN} \
   --output_directory="${OUTPUT_DIRECTORY}" \
   --imagenet_metadata_file="${IMAGENET_METADATA_FILE}" \
   --labels_file="${LABELS_FILE}" \
