@@ -16,7 +16,11 @@ mv cifar10_test.tfrecord cifar10_validation.tfrecord
 # Download and generate ImageNet TFRecord
 
 Before generating, `RAW_PIXEL=True` in `./${TF_MODEL_ROOT}/inception/data/download_and_preprocess_imagenet.sh` can enable storing raw RGB pixels of images into TFRecord.
+
 Storing raw pixels can save JPG decoding time but burden storage read bandwidth. Set `RAW_PIXEL=True` if high-speed external storage (like SSD) is used but decoder like in CPU cannot feed as fast as training (like in multi-GPUs).
+
+When `RAW_PIXEL=True`, setting `RESIZE_DIMEN` to a positive value enables image resizing before writing them to TFRecord files.
+
 ```
 # location of where to place the ImageNet data
 # If ILSVRC2012_img_train.tar and ILSVRC2012_img_val.tar were downloaded before, 
