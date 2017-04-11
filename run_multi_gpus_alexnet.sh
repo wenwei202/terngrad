@@ -15,9 +15,9 @@ GRAD_BITS=1
 BASE_LR=0.01
 CLIP_FACTOR=2.5 # 0.0 means no clipping
 # when GRAD_BITS=1 and FLOATING_GRAD_EPOCH>0, switch to floating gradients every FLOATING_GRAD_EPOCH epoch and then switch back
-FLOATING_GRAD_EPOCH=10 # 0 means no switching
-WEIGHT_DECAY=0.0 # default - alexnet/vgg_a/vgg_16:0.0005, inception_v3:0.00004, cifar10_alexnet:0.004
-DROPOUT_KEEP_PROB=0.5 # The probability to keep in dropout
+FLOATING_GRAD_EPOCH=0 # 0 means no switching
+WEIGHT_DECAY=0.0001 # default - alexnet/vgg_a/vgg_16:0.0005, inception_v3:0.00004, cifar10_alexnet:0.004
+DROPOUT_KEEP_PROB=0.8 # The probability to keep in dropout
 MOMENTUM=0.9
 SIZE_TO_BINARIZE=9217 # the min size of variable to enable binarizing. 1 means binarizing all variables when GRAD_BITS=1
 TRAIN_BATCH_SIZE=256 # total batch size

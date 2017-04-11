@@ -53,11 +53,12 @@ def ternary_decoder(encoded_data, scaler, shape):
   a_split4 = tf.to_int32(tf.mod(a/64,4))
   a = tf.concat([a_split1, a_split2, a_split3, a_split4], 0)
   real_size = tf.reduce_prod(shape)
+  a = tf.to_float(a)
   a = tf.gather(a, tf.range(0,real_size))
 
   a = tf.reshape(a, shape)
   a = tf.subtract(a,1)
-  decoded = tf.to_float(a)*scaler
+  decoded = a*scaler
   return decoded
 
 def encode_to_ternary_gradients(grads_and_vars, get_shape=False):
