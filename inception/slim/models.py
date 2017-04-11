@@ -13,31 +13,6 @@
 # limitations under the License.
 # ==============================================================================
 """AlexNet expressed in TensorFlow-Slim.
-
-  Usage:
-
-  # Parameters for BatchNorm.
-  batch_norm_params = {
-      # Decay for the batch_norm moving averages.
-      'decay': BATCHNORM_MOVING_AVERAGE_DECAY,
-      # epsilon to prevent 0s in variance.
-      'epsilon': 0.001,
-  }
-  # Set weight_decay for weights in Conv and FC layers.
-  with slim.arg_scope([slim.ops.conv2d, slim.ops.fc], weight_decay=0.00004):
-    with slim.arg_scope([slim.ops.conv2d],
-                        stddev=0.1,
-                        activation=tf.nn.relu,
-                        batch_norm_params=batch_norm_params):
-      # Force all Variables to reside on the CPU.
-      with slim.arg_scope([slim.variables.variable], device='/cpu:0'):
-        logits, endpoints = slim.inception.inception_v3(
-            images,
-            dropout_keep_prob=0.8,
-            num_classes=num_classes,
-            is_training=for_training,
-            restore_logits=restore_logits,
-            scope=scope)
 """
 from __future__ import absolute_import
 from __future__ import division
@@ -47,6 +22,10 @@ import tensorflow as tf
 
 from inception.slim import ops
 from inception.slim import scopes
+from inception.slim import inception_utils
+from inception.slim import inception_v1
+
+slim = tf.contrib.slim
 
 def alexnet(inputs,
                  dropout_keep_prob=0.5,
@@ -135,9 +114,6 @@ def alexnet(inputs,
   end_points['aux_logits'] = tf.constant(0)
   return logits, end_points
 
-
-
-slim = tf.contrib.slim
 #trunc_normal = lambda stddev: tf.truncated_normal_initializer(0.0, stddev,seed=1)
 
 def _alexnet_v2_arg_scope(weight_decay):
@@ -503,3 +479,19 @@ def cifar10_alexnet(inputs,
   # There is no aux_logits for AlexNet
   end_points['aux_logits'] = tf.constant(0)
   return logits, end_points
+
+def googlenet(inputs,
+           dropout_keep_prob=0.5,
+           num_classes=1000,
+           is_training=True,
+           restore_logits=True,
+           seed=1,
+           weight_decay=0.00004,
+           scope='googlenet'):
+    with slim.arg_scope(inception_utils.inception_arg_scope(weight_decay=weight_decay)):
+      logits, end_points = inception_v1.inception_v1(inputs,
+          num_classes=num_classes,
+          is_training=is_training,
+          dropout_keep_prob=dropout_keep_prob,
+          scope=scope)
+      return logits, end_points
