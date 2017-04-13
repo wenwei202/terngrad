@@ -52,7 +52,7 @@ BATCHNORM_MOVING_AVERAGE_DECAY = 0.9997
 MOVING_AVERAGE_DECAY = 0.9999
 
 
-def inference(images, num_classes, net='alexnet', for_training=False, restore_logits=True,
+def inference(images, num_classes, net, for_training=False, restore_logits=True,
               scope=None):
   """Build Inception v3 model architecture.
 

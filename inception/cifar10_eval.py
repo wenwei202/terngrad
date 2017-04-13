@@ -40,7 +40,7 @@ def main(unused_argv=None):
     tf.gfile.DeleteRecursively(FLAGS.eval_dir)
   tf.gfile.MakeDirs(FLAGS.eval_dir)
   FLAGS.dataset_name = 'cifar10'
-  FLAGS.num_examples = 10000
+  FLAGS.num_examples = dataset.num_examples_per_epoch()
   inception_eval.evaluate(dataset)
 
 

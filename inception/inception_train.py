@@ -38,7 +38,7 @@ tf.app.flags.DEFINE_string('train_dir', '/tmp/dataset_train',
                            """Directory where to write event logs """
                            """and checkpoint.""")
 tf.app.flags.DEFINE_string('subset', 'train',
-                           """Either 'train' or 'validation'.""")
+                           """Either 'train', 'validation' or 'test'.""")
 
 # Flags governing the hardware employed for running TensorFlow.
 tf.app.flags.DEFINE_integer('num_gpus', 1,

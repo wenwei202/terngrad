@@ -47,10 +47,12 @@ tf.app.flags.DEFINE_boolean('run_once', False,
 
 # Flags governing the data used for the eval.
 tf.app.flags.DEFINE_integer('num_examples', 50000,
-                            """Number of examples to run. Note that the eval """
-                            """ImageNet dataset contains 50000 examples.""")
+                            """Number of examples to run. Note that the eval. """
+                            """This may be changed according to dataset """
+                            """Cifar10 test dataset contains 10000 examples."""
+                            """ImageNet validation dataset contains 50000 examples.""")
 tf.app.flags.DEFINE_string('subset', 'validation',
-                           """Either 'validation' or 'train'.""")
+                           """Either 'validation', 'test' or 'train'.""")
 
 tf.app.flags.DEFINE_string('device', '/gpu:0',
                            """Device to run eval.""")

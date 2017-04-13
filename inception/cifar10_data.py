@@ -39,7 +39,7 @@ class Cifar10Data(Dataset):
     """Returns the number of examples in the data set."""
     if self.subset == 'train':
       return 50000
-    if self.subset == 'validation':
+    if self.subset == 'test':
       return 10000
 
   def download_message(self):
@@ -57,24 +57,9 @@ class Cifar10Data(Dataset):
     print('Please see README.md for instructions on how to build '
           'the cifar10 dataset using download_and_convert_data.py. For example: \n')
     print ('cd ./slim\n')
-    print ('python download_and_convert_data.py --dataset_name cifar10 --dataset_dir ~/dataset/cifar10-data/\n')
+    print ('python download_and_convert_data.py '
+           '--dataset_name cifar10 --dataset_dir ~/dataset/cifar10-data/ [--shard True]\n')
 
-  def data_files(self):
-    """Returns a python list of all (sharded) data subset files.
-
-    Returns:
-      python list of all (sharded) data set files.
-    Raises:
-      ValueError: if there are not data_files matching the subset.
-    """
-    # cifar10_test.tfrecord
-    tf_record_pattern = os.path.join(FLAGS.data_dir, 'cifar10_%s.tfrecord*' % self.subset)
-    data_files = tf.gfile.Glob(tf_record_pattern)
-    if not data_files:
-      print('No files found for dataset %s/%s at %s' % (self.name,
-                                                        self.subset,
-                                                        FLAGS.data_dir))
-
-      self.download_message()
-      exit(-1)
-    return data_files
+  def available_subsets(self):
+    """Returns the list of available subsets."""
+    return ['train', 'test']

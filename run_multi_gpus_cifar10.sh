@@ -61,6 +61,7 @@ bazel-bin/inception/${DATASET_NAME}_eval \
 --device ${EVAL_DEVICE} \
 --restore_avg_var ${RESTORE_AVG_VAR} \
 --data_dir ${DATA_DIR} \
+--subset "test" \
 --net ${NET} \
 --image_size ${IMAGE_SIZE} \
 --batch_size ${VAL_BATCH_SIZE} \
