@@ -32,16 +32,24 @@ import sys
 import tarfile
 
 import numpy as np
+import math
 from six.moves import urllib
 import tensorflow as tf
 
 from datasets import dataset_utils
+
+tf.app.flags.DEFINE_integer('train_shards', 1000,
+                            'Number of shards in training TFRecord files.')
+FLAGS = tf.app.flags.FLAGS
 
 # The URL where the CIFAR data can be downloaded.
 _DATA_URL = 'https://www.cs.toronto.edu/~kriz/cifar-10-python.tar.gz'
 
 # The number of training files.
 _NUM_TRAIN_FILES = 5
+
+# The number of training images.
+_NUM_TRAIN_IMAGES = 50000
 
 # The height and width of each image.
 _IMAGE_SIZE = 32
@@ -61,51 +69,74 @@ _CLASS_NAMES = [
 ]
 
 
-def _add_to_tfrecord(filename, tfrecord_writer, offset=0):
+def _add_to_tfrecord(filenames, name, dataset_dir):
   """Loads data from the cifar10 pickle files and writes files to a TFRecord.
 
   Args:
     filename: The filename of the cifar10 pickle file.
-    tfrecord_writer: The TFRecord writer to use for writing.
+    name: name of dataset -- 'train' or 'test'.
     offset: An offset into the absolute number of images previously written.
 
   Returns:
     The new offset.
   """
-  with tf.gfile.Open(filename, 'r') as f:
-    data = cPickle.load(f)
+  assert _NUM_TRAIN_IMAGES % FLAGS.train_shards == 0
+  offset = 0
+  shard = 0
+  images_per_shard = _NUM_TRAIN_IMAGES / FLAGS.train_shards
 
-  images = data['data']
-  num_images = images.shape[0]
+  if 'train' == name:
+    record_filename = _get_output_filename(dataset_dir, name, shard, FLAGS.train_shards)
+  elif 'test' == name:
+    record_filename = _get_output_filename(dataset_dir, name)
+  else:
+    raise ValueError('Illegal dataset name')
 
-  images = images.reshape((num_images, 3, 32, 32))
-  labels = data['labels']
+  tfrecord_writer = tf.python_io.TFRecordWriter(record_filename)
 
-  with tf.Graph().as_default():
-    image_placeholder = tf.placeholder(dtype=tf.uint8)
-    encoded_image = tf.image.encode_png(image_placeholder)
+  for filename in filenames:
+    with tf.gfile.Open(filename, 'r') as f:
+      data = cPickle.load(f)
 
-    with tf.Session('') as sess:
+    images = data['data']
+    num_images = images.shape[0]
 
-      for j in range(num_images):
-        sys.stdout.write('\r>> Reading file [%s] image %d/%d' % (
-            filename, offset + j + 1, offset + num_images))
-        sys.stdout.flush()
+    images = images.reshape((num_images, 3, 32, 32))
+    labels = data['labels']
 
-        image = np.squeeze(images[j]).transpose((1, 2, 0))
-        label = labels[j]
+    with tf.Graph().as_default():
+      image_placeholder = tf.placeholder(dtype=tf.uint8)
+      encoded_image = tf.image.encode_png(image_placeholder)
 
-        png_string = sess.run(encoded_image,
-                              feed_dict={image_placeholder: image})
+      with tf.Session('') as sess:
 
-        example = dataset_utils.image_to_tfexample(
-            png_string, 'png', _IMAGE_SIZE, _IMAGE_SIZE, label, _CLASS_NAMES[label])
-        tfrecord_writer.write(example.SerializeToString())
+        for j in range(num_images):
+          sys.stdout.write('\r>> Reading file [%s] image %d' % (
+              filename, offset + 1))
+          sys.stdout.flush()
 
-  return offset + num_images
+          if ('train' == name) and ( math.floor(offset / images_per_shard) > shard) :
+            tfrecord_writer.close()
+            shard = shard + 1
+            record_filename = _get_output_filename(dataset_dir, name, shard, FLAGS.train_shards)
+            tfrecord_writer = tf.python_io.TFRecordWriter(record_filename)
+
+          image = np.squeeze(images[j]).transpose((1, 2, 0))
+          label = labels[j]
+
+          png_string = sess.run(encoded_image,
+                                feed_dict={image_placeholder: image})
+
+          example = dataset_utils.image_to_tfexample(
+              png_string, 'png', _IMAGE_SIZE, _IMAGE_SIZE, label, _CLASS_NAMES[label])
+          tfrecord_writer.write(example.SerializeToString())
+          offset = offset + 1
+
+  tfrecord_writer.close()
+  return offset
 
 
-def _get_output_filename(dataset_dir, split_name):
+def _get_output_filename(dataset_dir, split_name, shard=0, num_shards=1):
   """Creates the output filename.
 
   Args:
@@ -115,7 +146,7 @@ def _get_output_filename(dataset_dir, split_name):
   Returns:
     An absolute file path.
   """
-  return '%s/%s-cifar10.tfrecord' % (dataset_dir, split_name)
+  return '%s/%s-%.5d-of-%.5d' % (dataset_dir, split_name, shard, num_shards)
 
 
 def _download_and_uncompress_dataset(dataset_dir):
@@ -162,30 +193,24 @@ def run(dataset_dir):
   if not tf.gfile.Exists(dataset_dir):
     tf.gfile.MakeDirs(dataset_dir)
 
-  training_filename = _get_output_filename(dataset_dir, 'train')
-  testing_filename = _get_output_filename(dataset_dir, 'test')
-
-  if tf.gfile.Exists(training_filename) and tf.gfile.Exists(testing_filename):
-    print('Dataset files already exist. Exiting without re-creating them.')
-    return
-
   dataset_utils.download_and_uncompress_tarball(_DATA_URL, dataset_dir)
 
   # First, process the training data:
-  with tf.python_io.TFRecordWriter(training_filename) as tfrecord_writer:
-    offset = 0
-    for i in range(_NUM_TRAIN_FILES):
-      filename = os.path.join(dataset_dir,
-                              'cifar-10-batches-py',
-                              'data_batch_%d' % (i + 1))  # 1-indexed.
-      offset = _add_to_tfrecord(filename, tfrecord_writer, offset)
+  #with tf.python_io.TFRecordWriter(training_filename) as tfrecord_writer:
+  filenames = []
+  for i in range(_NUM_TRAIN_FILES):
+    filenames.append(os.path.join(dataset_dir,
+                            'cifar-10-batches-py',
+                            'data_batch_%d' % (i + 1)))  # 1-indexed.
+  _add_to_tfrecord(filenames, 'train', dataset_dir)
 
   # Next, process the testing data:
-  with tf.python_io.TFRecordWriter(testing_filename) as tfrecord_writer:
-    filename = os.path.join(dataset_dir,
-                            'cifar-10-batches-py',
-                            'test_batch')
-    _add_to_tfrecord(filename, tfrecord_writer)
+  #with tf.python_io.TFRecordWriter(testing_filename) as tfrecord_writer:
+  filenames = []
+  filenames.append( os.path.join(dataset_dir,
+                          'cifar-10-batches-py',
+                          'test_batch'))
+  _add_to_tfrecord(filenames, 'test', dataset_dir)
 
   # Finally, write the labels file:
   labels_to_class_names = dict(zip(range(len(_CLASS_NAMES)), _CLASS_NAMES))

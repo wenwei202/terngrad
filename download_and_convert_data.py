@@ -37,6 +37,7 @@ from __future__ import print_function
 import tensorflow as tf
 
 from datasets import download_and_convert_cifar10
+from datasets import download_convert_and_shard_cifar10
 from datasets import download_and_convert_flowers
 from datasets import download_and_convert_mnist
 
@@ -52,6 +53,10 @@ tf.app.flags.DEFINE_string(
     None,
     'The directory where the output TFRecords and temporary files are saved.')
 
+tf.app.flags.DEFINE_bool(
+    'shard',
+    False,
+    'If break cifar10 train dataset to multiple TFRecord shards.')
 
 def main(_):
   if not FLAGS.dataset_name:
@@ -60,7 +65,10 @@ def main(_):
     raise ValueError('You must supply the dataset directory with --dataset_dir')
 
   if FLAGS.dataset_name == 'cifar10':
-    download_and_convert_cifar10.run(FLAGS.dataset_dir)
+    if FLAGS.shard:
+      download_convert_and_shard_cifar10.run(FLAGS.dataset_dir)
+    else:
+      download_and_convert_cifar10.run(FLAGS.dataset_dir)
   elif FLAGS.dataset_name == 'flowers':
     download_and_convert_flowers.run(FLAGS.dataset_dir)
   elif FLAGS.dataset_name == 'mnist':
