@@ -67,7 +67,8 @@ bazel-bin/inception/cifar10_eval \
 --restore_avg_var True \
 --tower 0 \
 --eval_interval_secs 300 \
---eval_dir /tmp/cifar10_eval
+--eval_dir /tmp/cifar10_eval \
+--subset test
 
 ```
 
