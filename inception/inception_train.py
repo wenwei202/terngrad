@@ -74,6 +74,9 @@ tf.app.flags.DEFINE_float('learning_rate_decay_factor', 0.1,
                           """Learning rate decay factor.""")
 tf.app.flags.DEFINE_float('momentum', 0.9,
                           """The momentum value of optimizer.""")
+tf.app.flags.DEFINE_string('learning_rate_decay_type','exponential',
+    'Specifies how the learning rate is decayed. One of "fixed", "exponential",'
+    ' or "polynomial"')
 
 # Configurations for BinGrad
 tf.app.flags.DEFINE_integer('grad_bits', 32,
@@ -232,14 +235,22 @@ def train(dataset):
     decay_steps = int(num_batches_per_epoch * FLAGS.num_epochs_per_decay)
 
     # Decay the learning rate exponentially based on the number of steps.
-    if ('adam' == FLAGS.optimizer):
+    if ('fixed'==FLAGS.learning_rate_decay_type or 'adam' == FLAGS.optimizer):
       lr = FLAGS.initial_learning_rate
-    else:
+    elif 'exponential'==FLAGS.learning_rate_decay_type:
       lr = tf.train.exponential_decay(FLAGS.initial_learning_rate,
                                     global_step/FLAGS.num_gpus,
                                     decay_steps,
                                     FLAGS.learning_rate_decay_factor,
                                     staircase=True)
+    elif 'polynomial'==FLAGS.learning_rate_decay_type:
+      lr = tf.train.polynomial_decay(FLAGS.initial_learning_rate,
+                                    global_step/FLAGS.num_gpus,
+                                    FLAGS.max_steps,
+                                    end_learning_rate=0.0,
+                                    power=0.5)
+    else:
+      raise ValueError('Wrong learning_rate_decay_type!')
 
     # Create an optimizer that performs gradient descent.
     opt = None
