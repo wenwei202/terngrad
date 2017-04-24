@@ -480,6 +480,64 @@ def cifar10_alexnet(inputs,
   end_points['aux_logits'] = tf.constant(0)
   return logits, end_points
 
+def lenet(inputs,
+                 dropout_keep_prob=1.0,
+                 num_classes=10,
+                 is_training=True,
+                 restore_logits=True,
+                 weight_decay=0.0005,
+                 seed=1,
+                 scope=''):
+  """LeNet in Caffe https://github.com/BVLC/caffe/blob/master/examples/mnist/lenet_train_test.prototxt
+
+  Args:
+    inputs: a tensor of size [batch_size, height, width, channels].
+    dropout_keep_prob: dropout keep_prob.
+    num_classes: number of predicted classes.
+    is_training: whether is training or not.
+    restore_logits: whether or not the logits layers should be restored.
+      Useful for fine-tuning a model with different num_classes.
+    scope: Optional scope for name_scope.
+
+  Returns:
+    a list containing 'logits', 'aux_logits' Tensors.
+  """
+  # end_points will collect relevant activations for external use, for example
+  # summaries or losses.
+  print ("Warning: batch_norm_params is always None in lenet")
+  end_points = {}
+  with tf.name_scope(scope, 'lenet', [inputs]):
+    with scopes.arg_scope([ops.conv2d, ops.fc, ops.batch_norm, ops.dropout],
+                          is_training=is_training):
+      with scopes.arg_scope([ops.conv2d, ops.fc],
+                            bias=0.0, batch_norm_params=None, seed=seed):
+        with scopes.arg_scope([ops.conv2d], stride=1, padding='SAME'):
+          with scopes.arg_scope([ops.max_pool], stride=2, padding='SAME'):
+            # 32 x 32 x 3
+            end_points['conv1'] = ops.conv2d(inputs, 20, [5, 5], stride=1, stddev=0.05,
+                                             weight_decay=weight_decay, seed=seed+1, scope='conv1')
+            end_points['pool1'] = ops.max_pool(end_points['conv1'], [2, 2], scope='pool1')
+
+            end_points['conv2'] = ops.conv2d(end_points['pool1'], 50, [5, 5], stride=1, stddev=0.05,
+                                             weight_decay=weight_decay, seed=seed+2, scope='conv2')
+            end_points['pool2'] = ops.max_pool(end_points['conv2'], [2, 2], scope='pool2')
+
+
+            end_points['pool2'] = ops.flatten(end_points['pool2'], scope='flatten')
+            net = ops.fc(end_points['pool2'], 500, stddev=0.048, weight_decay=weight_decay,
+                                       seed = seed +3, scope='fc3')
+
+            # Final pooling and prediction
+            with tf.variable_scope('logits'):
+              logits = ops.fc(net, num_classes, activation=None, stddev=0.0767, weight_decay=weight_decay,
+                              scope='logits', seed = seed +5, restore=restore_logits)
+              # 10
+              end_points['logits'] = logits
+              end_points['predictions'] = tf.nn.softmax(logits, name='predictions')
+  # There is no aux_logits for LeNet
+  end_points['aux_logits'] = tf.constant(0)
+  return logits, end_points
+
 def googlenet(inputs,
            dropout_keep_prob=0.5,
            num_classes=1000,

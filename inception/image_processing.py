@@ -42,6 +42,7 @@ from __future__ import print_function
 
 import tensorflow as tf
 import inception.vgg_preprocessing as vgg_prep
+import inception.lenet_preprocessing as lenet_prep
 import re
 import numpy as np
 
@@ -234,7 +235,7 @@ def decode_png(image_buffer, scope=None):
     # Note that the resulting image contains an unknown height and width
     # that is set dynamically by decode_jpeg. In other words, the height
     # and width of image is unknown at compile-time.
-    image = tf.image.decode_png(image_buffer, channels=3)
+    image = tf.image.decode_png(image_buffer, channels=0)
 
     # After this point, all image pixels reside in [0,1)
     # until the very end, when they're rescaled to (-1, 1).  The various
@@ -576,6 +577,8 @@ def image_preprocessing(image_buffer, bbox, train, thread_id=0, image_format='JP
         image = vgg_prep.preprocess_image(image, height, width, is_training=True)
       else:
         image = distort_image(image, height, width, bbox, thread_id=thread_id, add_summary=add_summary)
+    elif FLAGS.dataset_name == 'mnist':
+      image = lenet_prep.preprocess_image(image, height, width, is_training=True)
     else:
       raise ValueError("Wrong dataset_name!")
   else:
@@ -588,6 +591,8 @@ def image_preprocessing(image_buffer, bbox, train, thread_id=0, image_format='JP
         image = vgg_prep.preprocess_image(image, height, width, is_training=False)
       else:
         image = eval_image(image, height, width)
+    elif FLAGS.dataset_name == 'mnist':
+      image = lenet_prep.preprocess_image(image, height, width, is_training=False)
     else:
       raise ValueError("Wrong dataset_name!")
 
@@ -773,7 +778,10 @@ def batch_inputs(dataset, batch_size, train, num_preprocess_threads=None,
     # Reshape images into these desired dimensions.
     height = FLAGS.image_size
     width = FLAGS.image_size
-    depth = 3
+    if FLAGS.dataset_name == 'mnist':
+      depth = 1
+    else:
+      depth = 3
 
     images = tf.cast(images, tf.float32)
     images = tf.reshape(images, shape=[batch_size, height, width, depth])

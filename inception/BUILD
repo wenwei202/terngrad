@@ -37,6 +37,16 @@ py_library(
 )
 
 py_library(
+    name = "mnist_data",
+    srcs = [
+        "mnist_data.py",
+    ],
+    deps = [
+        ":dataset",
+    ],
+)
+
+py_library(
     name = "cifar10_data",
     srcs = [
         "cifar10_data.py",
@@ -57,6 +67,13 @@ py_library(
 )
 
 py_library(
+    name = "lenet_preprocessing",
+    srcs = [
+        "lenet_preprocessing.py",
+    ],
+)
+
+py_library(
     name = "vgg_preprocessing",
     srcs = [
         "vgg_preprocessing.py",
@@ -69,6 +86,7 @@ py_library(
         "image_processing.py",
     ],
     deps = [
+        ":lenet_preprocessing",
         ":vgg_preprocessing",
     ],
 )
@@ -104,6 +122,17 @@ py_binary(
     ],
     deps = [
         ":imagenet_data",
+        ":inception_eval",
+    ],
+)
+
+py_binary(
+    name = "mnist_eval",
+    srcs = [
+        "mnist_eval.py",
+    ],
+    deps = [
+        ":mnist_data",
         ":inception_eval",
     ],
 )
@@ -150,6 +179,17 @@ py_binary(
     ],
     deps = [
         ":imagenet_data",
+        ":inception_train",
+    ],
+)
+
+py_binary(
+    name = "mnist_train",
+    srcs = [
+        "mnist_train.py",
+    ],
+    deps = [
+        ":mnist_data",
         ":inception_train",
     ],
 )
