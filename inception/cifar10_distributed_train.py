@@ -24,13 +24,13 @@ from __future__ import print_function
 import tensorflow as tf
 
 from inception import inception_distributed_train
-from inception.imagenet_data import ImagenetData
+from inception.cifar10_data import Cifar10Data
 
 FLAGS = tf.app.flags.FLAGS
 
 
 def main(unused_args):
-  FLAGS.dataset_name = 'imagenet'
+  FLAGS.dataset_name = 'cifar10'
 
   assert FLAGS.job_name in ['ps', 'worker'], 'job_name must be ps or worker'
 
@@ -43,18 +43,22 @@ def main(unused_args):
 
   cluster_spec = tf.train.ClusterSpec({'ps': ps_hosts,
                                        'worker': worker_hosts})
+  sess_config = tf.ConfigProto()
+  sess_config.gpu_options.allow_growth = True
+
   server = tf.train.Server(
       {'ps': ps_hosts,
        'worker': worker_hosts},
       job_name=FLAGS.job_name,
-      task_index=FLAGS.task_id)
+      task_index=FLAGS.task_id,
+      config=sess_config)
 
   if FLAGS.job_name == 'ps':
     # `ps` jobs wait for incoming connections from the workers.
     server.join()
   else:
     # `worker` jobs will actually do the work.
-    dataset = ImagenetData(subset=FLAGS.subset)
+    dataset = Cifar10Data(subset=FLAGS.subset)
     assert dataset.data_files()
     # Only the chief checks for or creates train_dir.
     if FLAGS.task_id == 0:

@@ -166,6 +166,18 @@ py_binary(
 )
 
 py_binary(
+    name = "cifar10_distributed_train",
+    srcs = [
+        "cifar10_distributed_train.py",
+    ],
+    deps = [
+        ":cifar10_data",
+        ":inception_distributed_train",
+    ],
+)
+
+
+py_binary(
     name = "imagenet_distributed_train",
     srcs = [
         "imagenet_distributed_train.py",
@@ -206,6 +218,7 @@ py_library(
         "inception_distributed_train.py",
     ],
     deps = [
+        ":bingrad_common",
         ":image_processing",
         ":inception",
         ":models",
