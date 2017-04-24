@@ -58,9 +58,9 @@ def bytes_feature(values):
   return tf.train.Feature(bytes_list=tf.train.BytesList(value=[values]))
 
 
-def image_to_tfexample(image_data, image_format, height, width, class_id, human_label=''):
+def image_to_tfexample(image_data, image_format, height, width, class_id, human_label='', channels=3):
   colorspace = 'RGB'
-  channels = 3
+  #channels = 3
   xmin = []
   ymin = []
   xmax = []

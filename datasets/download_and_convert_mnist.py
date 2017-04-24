@@ -125,7 +125,8 @@ def _add_to_tfrecord(data_filename, labels_filename, num_images,
         png_string = sess.run(encoded_png, feed_dict={image: images[j]})
 
         example = dataset_utils.image_to_tfexample(
-            png_string, 'png'.encode(), _IMAGE_SIZE, _IMAGE_SIZE, labels[j])
+            png_string, 'png'.encode(), _IMAGE_SIZE, _IMAGE_SIZE, labels[j],
+            _CLASS_NAMES[labels[j]], channels=1)
         tfrecord_writer.write(example.SerializeToString())
 
 
@@ -139,7 +140,7 @@ def _get_output_filename(dataset_dir, split_name):
   Returns:
     An absolute file path.
   """
-  return '%s/mnist_%s.tfrecord' % (dataset_dir, split_name)
+  return '%s/%s-mnist.tfrecord' % (dataset_dir, split_name)
 
 
 def _download_dataset(dataset_dir):
