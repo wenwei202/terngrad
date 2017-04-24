@@ -66,6 +66,7 @@ bazel-bin/inception/${DATASET_NAME}_eval \
 --image_size ${IMAGE_SIZE} \
 --batch_size ${VAL_BATCH_SIZE} \
 --checkpoint_dir ${TRAIN_DIR} \
+--max_steps ${MAX_STEPS} \
 --tower ${VAL_TOWER} \
 --eval_dir ${EVAL_DIR} >  ${INFO_WORKSPACE}/eval_${FOLDER_NAME}_info.txt 2>&1 &
 
