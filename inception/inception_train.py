@@ -43,6 +43,8 @@ tf.app.flags.DEFINE_string('subset', 'train',
 # Flags governing the hardware employed for running TensorFlow.
 tf.app.flags.DEFINE_integer('num_gpus', 1,
                             """How many GPUs to use.""")
+tf.app.flags.DEFINE_integer('num_nodes', -1,
+                            """How many virtual nodes to use. One GPU can have multiple nodes""")
 tf.app.flags.DEFINE_boolean('log_device_placement', False,
                             """Whether to log device placement.""")
 
@@ -103,7 +105,7 @@ def _tower_loss(images, labels, num_classes, scope, reuse_variables=None):
   """Calculate the total loss on a single tower running the ImageNet model.
 
   We perform 'batch splitting'. This means that we cut up a batch across
-  multiple GPU's. For instance, if the batch size = 32 and num_gpus = 2,
+  multiple GPU's. For instance, if the batch size = 32 and num_nodes = 2,
   then each tower will operate on an batch of 16 images.
 
   Args:
@@ -223,8 +225,12 @@ def train(dataset):
   """Train on dataset for a number of steps."""
   with tf.Graph().as_default(), tf.device('/cpu:0'):
     tf.set_random_seed(FLAGS.seed)
+    if FLAGS.num_nodes > 0:
+      num_nodes = FLAGS.num_nodes
+    else:
+      num_nodes = FLAGS.num_gpus
     # Create a variable to count the number of train() calls. This equals the
-    # number of batches processed * FLAGS.num_gpus.
+    # number of batches processed * FLAGS.num_nodes.
     global_step = tf.get_variable(
         'global_step', [],
         initializer=tf.constant_initializer(0), trainable=False)
@@ -239,13 +245,13 @@ def train(dataset):
       lr = FLAGS.initial_learning_rate
     elif 'exponential'==FLAGS.learning_rate_decay_type:
       lr = tf.train.exponential_decay(FLAGS.initial_learning_rate,
-                                    global_step/FLAGS.num_gpus,
+                                    global_step/num_nodes,
                                     decay_steps,
                                     FLAGS.learning_rate_decay_factor,
                                     staircase=True)
     elif 'polynomial'==FLAGS.learning_rate_decay_type:
       lr = tf.train.polynomial_decay(FLAGS.initial_learning_rate,
-                                    global_step/FLAGS.num_gpus,
+                                    global_step/num_nodes,
                                     FLAGS.max_steps,
                                     end_learning_rate=0.0,
                                     power=0.5)
@@ -268,13 +274,12 @@ def train(dataset):
         raise ValueError("Wrong optimizer!")
 
     # Get images and labels for ImageNet and split the batch across GPUs.
-    assert FLAGS.batch_size % FLAGS.num_gpus == 0, (
-        'Batch size must be divisible by number of GPUs')
-    split_batch_size = int(FLAGS.batch_size / FLAGS.num_gpus)
+    assert FLAGS.batch_size % num_nodes == 0, (
+        'Batch size must be divisible by number of nodes')
 
     # Override the number of preprocessing threads to account for the increased
     # number of GPU towers.
-    num_preprocess_threads = FLAGS.num_preprocess_threads * FLAGS.num_gpus
+    num_preprocess_threads = FLAGS.num_preprocess_threads * num_nodes
     if FLAGS.benchmark_mode:
       images = tf.constant(0.5, shape=[FLAGS.batch_size, FLAGS.image_size, FLAGS.image_size, 3])
       labels = tf.random_uniform([FLAGS.batch_size], minval=0, maxval=dataset.num_classes()-1, dtype=tf.int32)
@@ -292,8 +297,8 @@ def train(dataset):
       num_classes = dataset.num_classes()
 
     # Split the batch of images and labels for towers.
-    images_splits = tf.split(images, FLAGS.num_gpus, 0)
-    labels_splits = tf.split(labels, FLAGS.num_gpus, 0)
+    images_splits = tf.split(images, num_nodes, 0)
+    labels_splits = tf.split(labels, num_nodes, 0)
 
     # Calculate the gradients for each model tower.
     tower_grads = [] # gradients of cross entropy or total cost for each tower
@@ -304,13 +309,13 @@ def train(dataset):
     reuse_variables = None
     tower_entropy_losses = []
     tower_reg_losses = []
-    for i in range(FLAGS.num_gpus):
-      with tf.device('/gpu:%d' % i):
+    for i in range(num_nodes):
+      with tf.device('/gpu:%d' % (i%FLAGS.num_gpus)):
         with tf.name_scope('%s_%d' % (inception.TOWER_NAME, i)) as scope:
           with tf.variable_scope('%s_%d' % (inception.TOWER_NAME, i)):
             # Force Variables to reside on the individual GPU.
             #with slim.arg_scope([slim.variables.variable], device='/cpu:0'):
-            with slim.arg_scope([slim.variables.variable], device='/gpu:%d' % i):
+            with slim.arg_scope([slim.variables.variable], device='/gpu:%d' % (i%FLAGS.num_gpus)):
               # Calculate the loss for one tower of the ImageNet model. This
               # function constructs the entire ImageNet model but shares the
               # variables across all towers.
@@ -361,20 +366,9 @@ def train(dataset):
       #   if mscaler is not None:
       #     tf.summary.scalar(mscaler.op.name + '/mean_scaler', mscaler)
 
-      # gradient clipping and binarizing
-      # @ GPUs
-      #for i in xrange(FLAGS.num_gpus):
-      #  with tf.device('/gpu:%d' % i):
-      #    with tf.name_scope('clipper_%d' % (i)) as scope:
-      #      # Clip and binarize gradients
-      #      # and keep track of the gradients across all towers.
-      #      tower_grads[i][:-2] = bingrad_common.clip_gradients_by_thresholds(
-      #        tower_grads[i][:-2],mean_scalers[:-2])
-      #      _gradient_summary(tower_grads[i], 'clipped')
-
       grad_shapes_for_deocder = []
-      for i in xrange(FLAGS.num_gpus):
-        with tf.device('/gpu:%d' % i):
+      for i in xrange(num_nodes):
+        with tf.device('/gpu:%d' % (i%FLAGS.num_gpus)):
           with tf.name_scope('binarizer_%d' % (i)) as scope:
             # Clip and binarize gradients
             # and keep track of the gradients across all towers.
@@ -394,16 +388,16 @@ def train(dataset):
     # decoding @ CPU
     if (1 == FLAGS.grad_bits) and FLAGS.use_encoding:
       with tf.name_scope('decoder') as scope:
-        for i in xrange(FLAGS.num_gpus):
+        for i in xrange(num_nodes):
           tower_grads[i][:-2] = bingrad_common.decode_from_ternary_gradients(
             tower_grads[i][:-2], mean_scalers[:-2], grad_shapes_for_deocder)
 
     # Switch between binarized and floating gradients
     if (FLAGS.floating_grad_epoch>0) and (1 == FLAGS.grad_bits):
-      epoch_remainder = tf.mod( ( (global_step / FLAGS.num_gpus) * FLAGS.batch_size) / dataset.num_examples_per_epoch(),
+      epoch_remainder = tf.mod( ( (global_step / num_nodes) * FLAGS.batch_size) / dataset.num_examples_per_epoch(),
              FLAGS.floating_grad_epoch)
       cond_op = tf.equal(tf.to_int32(tf.floor(epoch_remainder)), tf.to_int32(FLAGS.floating_grad_epoch-1))
-      for i in xrange(FLAGS.num_gpus):
+      for i in xrange(num_nodes):
         with tf.name_scope('switcher_%d' % (i)) as scope:
           _, selected_variables = zip( *(tower_floating_grads[i]) )
           selected_gradients = []
@@ -431,10 +425,10 @@ def train(dataset):
     # @ GPUs
     #apply_gradient_op = opt.apply_gradients(grads, global_step=global_step)
     apply_gradient_op = []
-    for i in xrange(FLAGS.num_gpus):
-      with tf.device('/gpu:%d' % i):
+    for i in xrange(num_nodes):
+      with tf.device('/gpu:%d' % (i%FLAGS.num_gpus)):
         with tf.name_scope('grad_applier_%d' % (i)) as scope:
-          # apply data loss SGD. global_step is incremented by FLAGS.num_gpus per iter
+          # apply data loss SGD. global_step is incremented by num_nodes per iter
           apply_gradient_op.append(opt.apply_gradients(tower_grads[i],
                                           global_step=global_step))
           if FLAGS.weight_decay:
@@ -450,7 +444,7 @@ def train(dataset):
     # global statistics. This is more complicated then need be but we employ
     # this for backward-compatibility with our previous models.
     variable_averages = tf.train.ExponentialMovingAverage(
-        inception.MOVING_AVERAGE_DECAY, global_step/FLAGS.num_gpus)
+        inception.MOVING_AVERAGE_DECAY, global_step/num_nodes)
 
     # Another possiblility is to use tf.slim.get_variables().
     variables_to_average = (tf.trainable_variables() +
