@@ -490,6 +490,8 @@ def eval_image(image, height, width, scope=None):
     image = tf.subtract(image, 0.5)
     image = tf.multiply(image, 2.0)
 
+    image.set_shape([height, width, 3])
+
     return image
 
 def eval_cifar10_image(image, height, width, scope=None):
