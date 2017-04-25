@@ -533,6 +533,7 @@ def eval_alexnet_image(image, height, width, scope=None):
 
     # scale and reduce mean
     image = tf.multiply(image, 255.0)
+    image.set_shape([height, width, 3])
     image = _mean_image_subtraction(image, [_R_MEAN, _G_MEAN, _B_MEAN])
     return image
 
