@@ -305,7 +305,7 @@ def train(dataset):
     tower_floating_grads = []  # gradients of cross entropy or total cost for each tower
     tower_batchnorm_updates = []
     tower_scalers = []
-    tower_reg_grads = []
+    #tower_reg_grads = []
     reuse_variables = None
     tower_entropy_losses = []
     tower_reg_losses = []
@@ -337,7 +337,7 @@ def train(dataset):
 
             # Calculate the gradients for the batch of data on this ImageNet
             # tower.
-            grads = opt.compute_gradients(entropy_loss, tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope=scope))
+            grads = opt.compute_gradients(loss, tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope=scope))
 
             # Keep track of the gradients across all towers.
             tower_grads.append(grads)
@@ -351,9 +351,9 @@ def train(dataset):
               tower_scalers.append(scalers)
 
             # regularization gradients
-            if FLAGS.weight_decay:
-              reg_grads = opt.compute_gradients(reg_loss, tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope=scope))
-              tower_reg_grads.append(reg_grads)
+            #if FLAGS.weight_decay:
+            #  reg_grads = opt.compute_gradients(reg_loss, tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope=scope))
+            #  tower_reg_grads.append(reg_grads)
 
     if 1 == FLAGS.grad_bits:
       for grads in tower_grads:
@@ -431,9 +431,9 @@ def train(dataset):
           # apply data loss SGD. global_step is incremented by num_nodes per iter
           apply_gradient_op.append(opt.apply_gradients(tower_grads[i],
                                           global_step=global_step))
-          if FLAGS.weight_decay:
-            # apply regularization, global_step is omitted to avoid incrementation
-            apply_gradient_op.append(opt.apply_gradients(tower_reg_grads[i]))
+          #if FLAGS.weight_decay:
+          #  # apply regularization, global_step is omitted to avoid incrementation
+          #  apply_gradient_op.append(opt.apply_gradients(tower_reg_grads[i]))
 
     # Add histograms for trainable variables.
     for var in tf.trainable_variables():
