@@ -8,6 +8,7 @@ DATA_DIR=${HOME}/dataset/${DATASET_NAME}-data # dataset location
 FINETUNED_MODEL_PATH=
 NUM_GPUS=2
 export CUDA_VISIBLE_DEVICES=0,1 # specify visible gpus to tensorflow
+NUM_NODES=4 # num of virtual nodes on physical gpus
 OPTIMIZER=momentum
 NET=googlenet
 IMAGE_SIZE=224
@@ -45,7 +46,7 @@ fi
 current_time=$(date)
 current_time=${current_time// /_}
 current_time=${current_time//:/-}
-FOLDER_NAME=${DATASET_NAME}_${NET}_${IMAGE_SIZE}_${OPTIMIZER}_${GRAD_BITS}_${BASE_LR}_${CLIP_FACTOR}_${FLOATING_GRAD_EPOCH}_${WEIGHT_DECAY}_${MOMENTUM}_${SIZE_TO_BINARIZE}_${TRAIN_BATCH_SIZE}_${NUM_GPUS}_${current_time}
+FOLDER_NAME=${DATASET_NAME}_${NET}_${IMAGE_SIZE}_${OPTIMIZER}_${GRAD_BITS}_${BASE_LR}_${CLIP_FACTOR}_${FLOATING_GRAD_EPOCH}_${WEIGHT_DECAY}_${MOMENTUM}_${SIZE_TO_BINARIZE}_${TRAIN_BATCH_SIZE}_${NUM_GPUS}_${NUM_NODES}_${current_time}
 TRAIN_DIR=${TRAIN_WORKSPACE}/${FOLDER_NAME}
 EVAL_DIR=${EVAL_WORKSPACE}/${FOLDER_NAME}
 if [ ! -d "$TRAIN_DIR" ]; then
@@ -86,6 +87,7 @@ bazel-bin/inception/${DATASET_NAME}_train \
 --net ${NET} \
 --image_size ${IMAGE_SIZE} \
 --num_gpus ${NUM_GPUS} \
+--num_nodes ${NUM_NODES} \
 --batch_size ${TRAIN_BATCH_SIZE} \
 --max_steps ${MAX_STEPS} \
 --train_dir ${TRAIN_DIR} \
