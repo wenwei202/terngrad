@@ -91,6 +91,10 @@ tf.app.flags.DEFINE_integer('save_tower', -1,
                             """Save the variables in a specific tower. -1 refers all towers""")
 tf.app.flags.DEFINE_bool('use_encoding', False,
                             """If use encoder-decoder to communicate. Current implementation is NOT efficient.""")
+tf.app.flags.DEFINE_bool('quantize_logits', False,
+                            """If quantize the gradients in the last logits layer.""")
+tf.app.flags.DEFINE_integer('save_iter', 5000,
+                            """Save summaries and model checkpoint per iterations.""")
 
 tf.app.flags.DEFINE_bool('benchmark_mode', False,
                             """benchmarking mode to test the scalability.""")
@@ -356,8 +360,8 @@ def train(dataset):
             #  tower_reg_grads.append(reg_grads)
 
     if 1 == FLAGS.grad_bits:
-      for grads in tower_grads:
-        _gradient_summary(grads, 'floating')
+      # for grads in tower_grads:
+      #   _gradient_summary(grads, 'floating')
 
       # We must calculate the mean of each scaler. Note that this is the
       # synchronization point across all towers @ CPU.
@@ -372,8 +376,13 @@ def train(dataset):
           with tf.name_scope('binarizer_%d' % (i)) as scope:
             # Clip and binarize gradients
             # and keep track of the gradients across all towers.
-            tower_grads[i][:-2] = bingrad_common.stochastical_binarize_gradients(
-              tower_grads[i][:-2], mean_scalers[:-2])
+            if FLAGS.quantize_logits:
+              tower_grads[i][:] = bingrad_common.stochastical_binarize_gradients(
+                tower_grads[i][:], mean_scalers[:])
+            else:
+              tower_grads[i][:-2] = bingrad_common.stochastical_binarize_gradients(
+                  tower_grads[i][:-2], mean_scalers[:-2])
+
             _gradient_summary(tower_grads[i], 'binary', add_sparsity=True)
 
           if FLAGS.use_encoding:
@@ -418,8 +427,8 @@ def train(dataset):
     tf.summary.scalar('learning_rate', lr)
 
     # Add histograms for gradients.
-    for grads in tower_grads:
-      _gradient_summary(grads, 'final')
+    # for grads in tower_grads:
+    #   _gradient_summary(grads, 'final')
 
     # Apply the gradients to adjust the shared variables.
     # @ GPUs
@@ -547,11 +556,11 @@ def train(dataset):
                             entropy_loss_value, reg_loss_value, entropy_loss_value+reg_loss_value,
                             examples_per_sec, duration))
 
-      if step % 2000 == 0:
+      if step % FLAGS.save_iter == 0:
         summary_str = sess.run(summary_op)
         summary_writer.add_summary(summary_str, step)
 
       # Save the model checkpoint periodically.
-      if step % 5000 == 0 or (step + 1) == FLAGS.max_steps:
+      if step % FLAGS.save_iter == 0 or (step + 1) == FLAGS.max_steps:
         checkpoint_path = os.path.join(FLAGS.train_dir, 'model.ckpt')
         saver.save(sess, checkpoint_path, global_step=step)

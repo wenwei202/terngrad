@@ -13,7 +13,7 @@ OPTIMIZER=momentum
 NET=cifar10_alexnet
 IMAGE_SIZE=24
 GRAD_BITS=32
-BASE_LR=0.001
+BASE_LR=0.01
 CLIP_FACTOR=0.0 # 0.0 means no clipping
 # when GRAD_BITS=1 and FLOATING_GRAD_EPOCH>0, switch to floating gradients every FLOATING_GRAD_EPOCH epoch and then switch back
 FLOATING_GRAD_EPOCH=0 # 0 means no switching
@@ -22,10 +22,12 @@ MOMENTUM=0.9
 LR_DECAY_TYPE="polynomial"
 SIZE_TO_BINARIZE=1 # The min size of variable to enable binarizing. e.g., 385 means biases are excluded from binarizing
 TRAIN_BATCH_SIZE=128
+SAVE_ITER=2000 # Save summaries and checkpoint per iterations
+QUANTIZE_LOGITS=True # If quantize the gradients in the last logits layer. 
 VAL_BATCH_SIZE=50 # set smaller to avoid OOM
 MAX_STEPS=80000
 VAL_TOWER=0 # -1 for cpu
-EVAL_INTERVAL_SECS=120
+EVAL_INTERVAL_SECS=10
 EVAL_DEVICE="/gpu:0" # specify the device to eval. e.g. "/gpu:1", "/cpu:0"
 RESTORE_AVG_VAR=True # use the moving average parameters to eval?
 SEED=123 # use ${RANDOM} if no duplicable results are required
@@ -88,6 +90,8 @@ bazel-bin/inception/${DATASET_NAME}_train \
 --num_gpus ${NUM_GPUS} \
 --num_nodes ${NUM_NODES} \
 --batch_size ${TRAIN_BATCH_SIZE} \
+--save_iter ${SAVE_ITER} \
+--quantize_logits ${QUANTIZE_LOGITS} \
 --max_steps ${MAX_STEPS} \
 --train_dir ${TRAIN_DIR} \
 --data_dir ${DATA_DIR} > ${INFO_WORKSPACE}/training_${FOLDER_NAME}_info.txt 2>&1 &

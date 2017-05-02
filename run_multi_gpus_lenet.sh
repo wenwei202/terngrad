@@ -22,6 +22,8 @@ MOMENTUM=0.9
 LR_DECAY_TYPE="polynomial" # learning rate decay type
 SIZE_TO_BINARIZE=1 # the min size of variable to enable binarizing. 1 means binarizing all variables when GRAD_BITS=1
 TRAIN_BATCH_SIZE=64 # total batch size
+SAVE_ITER=200 # Save summaries and checkpoint per iterations
+QUANTIZE_LOGITS=True # If quantize the gradients in the last logits layer. 
 VAL_BATCH_SIZE=100 # set smaller to avoid OOM
 MAX_STEPS=10000
 VAL_TOWER=0 # -1 for cpu
@@ -88,6 +90,8 @@ bazel-bin/inception/${DATASET_NAME}_train \
 --num_gpus ${NUM_GPUS} \
 --num_nodes ${NUM_NODES} \
 --batch_size ${TRAIN_BATCH_SIZE} \
+--save_iter ${SAVE_ITER} \
+--quantize_logits ${QUANTIZE_LOGITS} \
 --max_steps ${MAX_STEPS} \
 --train_dir ${TRAIN_DIR} \
 --data_dir ${DATA_DIR} > ${INFO_WORKSPACE}/training_${FOLDER_NAME}_info.txt 2>&1 &
