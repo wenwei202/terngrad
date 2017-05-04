@@ -14,5 +14,5 @@ bazel build inception/cifar10_eval
 bazel build inception/imagenet_train
 bazel build inception/imagenet_eval
 
-#bazel build inception/imagenet_distributed_train
-#bazel build inception/cifar10_distributed_train
+bazel build inception/imagenet_distributed_train
+bazel build inception/cifar10_distributed_train
