@@ -365,7 +365,8 @@ def train(dataset):
 
       # We must calculate the mean of each scaler. Note that this is the
       # synchronization point across all towers @ CPU.
-      mean_scalers = bingrad_common.average_scalers(tower_scalers)
+      # mean_scalers = bingrad_common.average_scalers(tower_scalers)
+      mean_scalers = bingrad_common.max_scalers(tower_scalers)
       # for mscaler in mean_scalers:
       #   if mscaler is not None:
       #     tf.summary.scalar(mscaler.op.name + '/mean_scaler', mscaler)

@@ -278,3 +278,35 @@ def average_scalers(tower_scalers):
 
     average_scalers.append(scaler)
   return average_scalers
+
+def max_scalers(tower_scalers):
+  """Calculate the max scalers for gradients across all towers.
+
+  Note that this function provides a synchronization point across all towers.
+
+  Args:
+    tower_scalers: List of lists of (scaler, variable) tuples. The outer list
+      is over individual scaler. The inner list is over the scaler
+      calculation for each tower.
+  Returns:
+     List of pairs of scaler where the scaler is the max one
+     across all towers.
+  """
+  max_scalers = []
+  for scale_and_vars in zip(*tower_scalers):
+    # Note that each scale_and_vars looks like the following:
+    #   ((scale0_gpu0, var0_gpu0), ... , (scale0_gpuN, var0_gpuN))
+    scalers = []
+    for s, _ in scale_and_vars:
+      # Add 0 dimension to the scalers to represent the tower.
+      expanded_s = tf.expand_dims(s, 0)
+
+      # Append on a 'tower' dimension which we get the max over below.
+      scalers.append(expanded_s)
+
+    # Get the max over the 'tower' dimension.
+    scaler = tf.concat(scalers, 0)
+    scaler = tf.reduce_max(scaler, 0)
+
+    max_scalers.append(scaler)
+  return max_scalers
