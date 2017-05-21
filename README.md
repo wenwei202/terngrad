@@ -1,17 +1,17 @@
 
-This is a modified copy of `./inception`. 
+This is a modified copy of [inception](https://github.com/tensorflow/models/tree/master/inception). 
 
 **In this workspace, `inception` refers to all types of neural networks in a general way.**
 
 # Build all
 ```
-cd ${TF_MODEL_ROOT}/bingrad
+cd ${TERNGRAD_ROOT}/terngrad
 ./build_all.sh
 ```
 # Download and generate mnist TFRecord
 
 ```
-cd ${TF_MODEL_ROOT}/slim
+cd ${TERNGRAD_ROOT}/slim
 # Generate train-mnist.tfrecord and test-mnist.tfrecord
 export DATA_PATH="${HOME}/dataset/mnist-data/"
 python download_and_convert_data.py --dataset_name mnist --dataset_dir ${DATA_PATH}
@@ -20,7 +20,7 @@ python download_and_convert_data.py --dataset_name mnist --dataset_dir ${DATA_PA
 # Download and generate cifar-10 TFRecord
 
 ```
-cd ${TF_MODEL_ROOT}/slim
+cd ${TERNGRAD_ROOT}/slim
 # Generate train-cifar10.tfrecord and test-cifar10.tfrecord
 export DATA_PATH="${HOME}/dataset/cifar10-data/" # the directory of database
 python download_and_convert_data.py --dataset_name cifar10 --dataset_dir ${DATA_PATH}
@@ -35,7 +35,7 @@ python download_and_convert_data.py \
 
 # Download and generate ImageNet TFRecord
 
-Before generating, `RAW_PIXEL=True` in `${TF_MODEL_ROOT}/inception/data/download_and_preprocess_imagenet.sh` can enable storing raw RGB pixels of images into TFRecord.
+Before generating, `RAW_PIXEL=True` in `${TERNGRAD_ROOT}/terngrad/inception/data/download_and_preprocess_imagenet.sh` can enable storing raw RGB pixels of images into TFRecord.
 
 Storing raw pixels can save JPG decoding time but burden storage read bandwidth. Set `RAW_PIXEL=True` if high-speed external storage (like SSD) is used but decoder like in CPU cannot feed as fast as training (like in multi-GPUs).
 
@@ -55,7 +55,7 @@ bazel-bin/inception/download_and_preprocess_imagenet "${DATA_DIR}"
 ```
 # Build and run evaluating/training LeNet on mnist
 ```
-cd ${TF_MODEL_ROOT}/bingrad
+cd ${TERNGRAD_ROOT}/terngrad
 bazel build inception/mnist_train
 bazel build inception/mnist_eval
 
@@ -86,7 +86,7 @@ bazel-bin/inception/mnist_eval \
 
 # Build and run evaluating/training on cifar-10
 ```
-cd ${TF_MODEL_ROOT}/bingrad
+cd ${TERNGRAD_ROOT}/terngrad
 bazel build inception/cifar10_train
 bazel build inception/cifar10_eval
 
@@ -119,7 +119,7 @@ bazel-bin/inception/cifar10_eval \
 # Build and run ImageNet
 
 ```
-cd ${TF_MODEL_ROOT}/bingrad
+cd ${TERNGRAD_ROOT}/terngrad
 bazel build inception/imagenet_train
 bazel build inception/imagenet_eval
 
