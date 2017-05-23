@@ -1,4 +1,8 @@
 
+# Paper
+https://arxiv.org/abs/1705.07878
+
+# Overview
 This is a modified copy of TensorFlow [inception](https://github.com/tensorflow/models/tree/master/inception). 
 
 **In this workspace, `inception` refers to all types of neural networks in a general way.**
