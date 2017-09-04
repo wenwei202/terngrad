@@ -1,5 +1,7 @@
 
 # Paper
+Accepted as an oral paper in NIPS 2017.
+
 https://arxiv.org/abs/1705.07878
 
 # Overview
