@@ -1,6 +1,6 @@
 
 # Introduction
-This repo is the code for our oral paper in NIPS 2017 ([TernGrad: Ternary Gradients to Reduce Communication in Distributed Deep Learning](https://arxiv.org/abs/1705.07878)).
+This repo is the TensorFlow code for our oral paper in NIPS 2017 ([TernGrad: Ternary Gradients to Reduce Communication in Distributed Deep Learning](https://arxiv.org/abs/1705.07878)).
 
 For the code of [NIPS 2016](http://papers.nips.cc/paper/6504-learning-structured-sparsity-in-deep-neural-networks.pdf) and [ICCV 2017](https://arxiv.org/abs/1703.09746) to accelerate the inference of DNNs, please go to [here](https://github.com/wenwei202/caffe).
 
