@@ -1,8 +1,8 @@
 
 # Paper
-Accepted as an oral paper in NIPS 2017.
+The repo is the code for our oral paper in NIPS 2017 ([TernGrad: Ternary Gradients to Reduce Communication in Distributed Deep Learning](https://arxiv.org/abs/1705.07878)).
 
-https://arxiv.org/abs/1705.07878
+Code of [NIPS 2016](https://github.com/wenwei202/caffe/scnn) and [ICCV 2017](https://github.com/wenwei202/caffe) to accelerate the inference of DNNs.
 
 # Overview
 This is a modified copy of TensorFlow [inception](https://github.com/tensorflow/models/tree/master/inception). 
