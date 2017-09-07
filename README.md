@@ -14,7 +14,8 @@ This is a modified copy of TensorFlow [inception](https://github.com/tensorflow/
 cd ${TERNGRAD_ROOT}/terngrad
 ./build_all.sh
 ```
-# Download and generate mnist TFRecord
+# Dataset preparation
+## Download and generate mnist TFRecord
 
 ```
 cd ${TERNGRAD_ROOT}/slim
@@ -23,7 +24,7 @@ export DATA_PATH="${HOME}/dataset/mnist-data/"
 python download_and_convert_data.py --dataset_name mnist --dataset_dir ${DATA_PATH}
 ```
 
-# Download and generate cifar-10 TFRecord
+## Download and generate cifar-10 TFRecord
 
 ```
 cd ${TERNGRAD_ROOT}/slim
@@ -39,7 +40,7 @@ python download_and_convert_data.py \
 --shard True
 ```
 
-# Download and generate ImageNet TFRecord
+## Download and generate ImageNet TFRecord
 
 Before generating, `RAW_PIXEL=True` in `${TERNGRAD_ROOT}/terngrad/inception/data/download_and_preprocess_imagenet.sh` can enable storing raw RGB pixels of images into TFRecord.
 
@@ -59,7 +60,12 @@ bazel build inception/download_and_preprocess_imagenet
 # run it
 bazel-bin/inception/download_and_preprocess_imagenet "${DATA_DIR}"
 ```
-# Build and run evaluating/training LeNet on mnist
+# Examples
+[Run](/terngrad/run_multi_gpus_cifar10.sh#L5-L33) terngrad on cifar-10, which starts both training and evaluating. You can change those hyper-parameters to play. More scripts are in [terngrad](/terngrad). 
+Use `--help` to check descriptions for usage of python executives. More tutorials will be updated. Feel free to open an issue if any question.
+
+# SGD with 32bit gradients
+## Build and run evaluating/training LeNet on mnist
 ```
 cd ${TERNGRAD_ROOT}/terngrad
 bazel build inception/mnist_train
@@ -90,7 +96,7 @@ bazel-bin/inception/mnist_eval \
 --subset test
 ```
 
-# Build and run evaluating/training on cifar-10
+## Build and run evaluating/training on cifar-10
 ```
 cd ${TERNGRAD_ROOT}/terngrad
 bazel build inception/cifar10_train
@@ -122,7 +128,7 @@ bazel-bin/inception/cifar10_eval \
 
 ```
 
-# Build and run ImageNet
+## Build and run ImageNet
 
 ```
 cd ${TERNGRAD_ROOT}/terngrad
