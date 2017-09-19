@@ -8,6 +8,10 @@ This is a modified copy of TensorFlow [inception](https://github.com/tensorflow/
 
 **In this workspace, `inception` refers to all types of neural networks in a general way.**
 
+# Dependencies
+Tested in python 2.7 (Anaconda) and Tensorflow 1.0.0 (installed from source code)
+
+Testing by python 3.6.1 (Anaconda) and Tensorflow 1.1.0 (installed from python wheel)
 # Build all
 ```
 cd ${TERNGRAD_ROOT}/terngrad
