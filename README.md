@@ -4,9 +4,23 @@ This repo is the TensorFlow code for our oral paper in NIPS 2017 ([TernGrad: Ter
 
 For the code of [NIPS 2016](http://papers.nips.cc/paper/6504-learning-structured-sparsity-in-deep-neural-networks.pdf) and [ICCV 2017](https://arxiv.org/abs/1703.09746) to accelerate the inference of DNNs, please go to [here](https://github.com/wenwei202/caffe).
 
-This is a modified copy of TensorFlow [inception](https://github.com/tensorflow/models/tree/master/inception). 
+This is a modified copy of TensorFlow [inception](https://github.com/tensorflow/models/tree/master/inception) (with original contributions kept). 
 
 **In this workspace, `inception` refers to all types of neural networks in a general way.**
+
+# Dependencies
+Tested stable dependencies:
+* python 2.7 (Anaconda)
+* Tensorflow 1.0.0 (installed from source code. Python wheel may work too)
+* cudnn 5.1.5
+* bazel release 0.4.4
+
+Pending to test by python 3.6.1 (Anaconda) and Tensorflow 1.1.0 (installed from python wheel). Known issues (mainly because of update to python 3):
+* use `pickle` instead of `cPickle` python package
+* use `range` instead of `xrange`
+* use `dict.items` instead of `dict.iteritems` 
+* `TypeError: 'RGB' has type str, but expected one of: bytes`: use `b'RGB'` instead of `'RGB'`
+
 
 # Build all
 ```
