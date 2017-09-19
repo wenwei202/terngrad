@@ -372,7 +372,7 @@ def train(dataset):
       #     tf.summary.scalar(mscaler.op.name + '/mean_scaler', mscaler)
 
       grad_shapes_for_deocder = []
-      for i in xrange(num_nodes):
+      for i in range(num_nodes):
         with tf.device('/gpu:%d' % (i%FLAGS.num_gpus)):
           with tf.name_scope('binarizer_%d' % (i)) as scope:
             # Clip and binarize gradients
@@ -398,7 +398,7 @@ def train(dataset):
     # decoding @ CPU
     if (1 == FLAGS.grad_bits) and FLAGS.use_encoding:
       with tf.name_scope('decoder') as scope:
-        for i in xrange(num_nodes):
+        for i in range(num_nodes):
           tower_grads[i][:-2] = bingrad_common.decode_from_ternary_gradients(
             tower_grads[i][:-2], mean_scalers[:-2], grad_shapes_for_deocder)
 
@@ -407,7 +407,7 @@ def train(dataset):
       epoch_remainder = tf.mod( ( (global_step / num_nodes) * FLAGS.batch_size) / dataset.num_examples_per_epoch(),
              FLAGS.floating_grad_epoch)
       cond_op = tf.equal(tf.to_int32(tf.floor(epoch_remainder)), tf.to_int32(FLAGS.floating_grad_epoch-1))
-      for i in xrange(num_nodes):
+      for i in range(num_nodes):
         with tf.name_scope('switcher_%d' % (i)) as scope:
           _, selected_variables = zip( *(tower_floating_grads[i]) )
           selected_gradients = []
@@ -435,7 +435,7 @@ def train(dataset):
     # @ GPUs
     #apply_gradient_op = opt.apply_gradients(grads, global_step=global_step)
     apply_gradient_op = []
-    for i in xrange(num_nodes):
+    for i in range(num_nodes):
       with tf.device('/gpu:%d' % (i%FLAGS.num_gpus)):
         with tf.name_scope('grad_applier_%d' % (i)) as scope:
           # apply data loss SGD. global_step is incremented by num_nodes per iter

@@ -48,16 +48,16 @@ _NUM_CHANNELS = 1
 
 # The names of the classes.
 _CLASS_NAMES = [
-    'zero',
-    'one',
-    'two',
-    'three',
-    'four',
-    'five',
-    'size',
-    'seven',
-    'eight',
-    'nine',
+    b'zero',
+    b'one',
+    b'two',
+    b'three',
+    b'four',
+    b'five',
+    b'size',
+    b'seven',
+    b'eight',
+    b'nine',
 ]
 
 

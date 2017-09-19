@@ -187,7 +187,7 @@ def evaluate(dataset):
       saver = tf.train.Saver(variables_to_restore)
       if FLAGS.tower>=0:
         var_dic = {}
-        for _name, _var in variables_to_restore.iteritems():
+        for _name, _var in variables_to_restore.items():
           _var_name = '%s_%d' % (inception.TOWER_NAME, FLAGS.tower) + '/' + _name
           var_dic[_var_name] = _var
         saver = tf.train.Saver(var_dic)
