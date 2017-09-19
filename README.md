@@ -12,7 +12,9 @@ This is a modified copy of TensorFlow [inception](https://github.com/tensorflow/
 Tested in python 2.7 (Anaconda) and Tensorflow 1.0.0 (installed from source code)
 
 Testing by python 3.6.1 (Anaconda) and Tensorflow 1.1.0 (installed from python wheel). Known issues:
-* use pickle instead of cPickle python package
+* use `pickle` instead of `cPickle` python package
+* use `range` instead of `xrange`
+
 # Build all
 ```
 cd ${TERNGRAD_ROOT}/terngrad
