@@ -11,7 +11,8 @@ This is a modified copy of TensorFlow [inception](https://github.com/tensorflow/
 # Dependencies
 Tested in python 2.7 (Anaconda) and Tensorflow 1.0.0 (installed from source code)
 
-Testing by python 3.6.1 (Anaconda) and Tensorflow 1.1.0 (installed from python wheel)
+Testing by python 3.6.1 (Anaconda) and Tensorflow 1.1.0 (installed from python wheel). Known issues:
+* use pickle instead of cPickle python package
 # Build all
 ```
 cd ${TERNGRAD_ROOT}/terngrad
