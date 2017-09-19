@@ -19,6 +19,7 @@ Pending to test by python 3.6.1 (Anaconda) and Tensorflow 1.1.0 (installed from 
 * use `pickle` instead of `cPickle` python package
 * use `range` instead of `xrange`
 * use `dict.items` instead of `dict.iteritems` 
+* `TypeError: 'RGB' has type str, but expected one of: bytes`: use `b'RGB'` instead of `'RGB'`
 
 
 # Build all
