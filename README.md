@@ -9,11 +9,16 @@ This is a modified copy of TensorFlow [inception](https://github.com/tensorflow/
 **In this workspace, `inception` refers to all types of neural networks in a general way.**
 
 # Dependencies
-Tested in python 2.7 (Anaconda) and Tensorflow 1.0.0 (installed from source code)
+Tested dependencies:
+* python 2.7 (Anaconda)
+* Tensorflow 1.0.0 (installed from source code. Python wheel may work too)
+* bazel release 0.4.4
 
-Testing by python 3.6.1 (Anaconda) and Tensorflow 1.1.0 (installed from python wheel). Known issues:
+Pending to test by python 3.6.1 (Anaconda) and Tensorflow 1.1.0 (installed from python wheel). Known issues:
 * use `pickle` instead of `cPickle` python package
 * use `range` instead of `xrange`
+
+
 
 # Build all
 ```
