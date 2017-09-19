@@ -9,7 +9,7 @@ This is a modified copy of TensorFlow [inception](https://github.com/tensorflow/
 **In this workspace, `inception` refers to all types of neural networks in a general way.**
 
 # Dependencies
-Tested dependencies:
+Tested stable dependencies:
 * python 2.7 (Anaconda)
 * Tensorflow 1.0.0 (installed from source code. Python wheel may work too)
 * cudnn 5.1.5
