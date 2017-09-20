@@ -90,7 +90,7 @@ cd ${TERNGRAD_ROOT}/terngrad
 * starts evaluating.  
 You can change those environments to play.
 
-Use `--help` to check descriptions for usage of python executives. For example,
+Use `--help` to check descriptions for usage of python executables. For example,
 ```
 bazel-bin/inception/cifar10_train --help
 ```
@@ -121,7 +121,10 @@ More explanations are also covered in [run_multi_gpus_cifar10.sh](/terngrad/run_
 
 More training bash scripts are in [terngrad](/terngrad), which have similar arguments. 
 
-# SGD with 32bit gradients
+# python executables
+Bash scripts essentially call python executables. We list python commands here for agile development.
+Taking 32bit gradients as examples.
+
 ## Build and run evaluating/training LeNet on mnist
 ```
 cd ${TERNGRAD_ROOT}/terngrad
