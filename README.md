@@ -84,7 +84,11 @@ bazel-bin/inception/download_and_preprocess_imagenet "${DATA_DIR}"
 cd ${TERNGRAD_ROOT}/terngrad
 ./run_multi_gpus_cifar10.sh
 ```
-[run_multi_gpus_cifar10.sh](/terngrad/run_multi_gpus_cifar10.sh#L5-L33) is a training script on cifar-10, which starts both training and evaluating. You can change those hyper-parameters to play. 
+[run_multi_gpus_cifar10.sh](/terngrad/run_multi_gpus_cifar10.sh#L5-L33) is a training script on cifar-10, which
+* creates a subfolder under `$ROOT_WORKSPACE/${DATASET_NAME}_xxx/` to store the training data (`${ROOT_WORKSPACE}/${DATASET_NAME}_training_data/`), evaluating data (`${ROOT_WORKSPACE}/${DATASET_NAME}_eval_data/`) and logs (`${ROOT_WORKSPACE}/${DATASET_NAME}_info/`). The subfolder name or log filename is similar to `cifar10_cifar10_alexnet_24_adam_1_0.0002_2.5_0_0.004_0.9_1_128_2_Tue_Sep_19_15-27-51_EDT_2017`. 
+* starts training and 
+* starts evaluating.  
+You can change those environments to play.
 
 Use `--help` to check descriptions for usage of python executives. For example,
 ```
