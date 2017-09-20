@@ -8,6 +8,10 @@ This is a modified copy of TensorFlow [inception](https://github.com/tensorflow/
 
 **In this workspace, `inception` refers to all types of neural networks in a general way.**
 
+**Note that there is name abuse because of history reasons. All bingrad/binary gradient/binarizing in code comments and help info essentially refers to terngrad/ternary gradient/ternarizing. Will update them, but the code is correct and is exactly for terngrad**
+
+*More tutorials will be updated. Feel free to open an issue if any question.*
+
 # Dependencies
 Tested stable dependencies:
 * python 2.7 (Anaconda)
@@ -75,8 +79,43 @@ bazel build inception/download_and_preprocess_imagenet
 bazel-bin/inception/download_and_preprocess_imagenet "${DATA_DIR}"
 ```
 # Examples
-[Run](/terngrad/run_multi_gpus_cifar10.sh#L5-L33) terngrad on cifar-10, which starts both training and evaluating. You can change those hyper-parameters to play. More scripts are in [terngrad](/terngrad). 
-Use `--help` to check descriptions for usage of python executives. More tutorials will be updated. Feel free to open an issue if any question.
+## Training CifarNet by TernGrad with Adam
+```
+cd ${TERNGRAD_ROOT}/terngrad
+./run_multi_gpus_cifar10.sh
+```
+[run_multi_gpus_cifar10.sh](/terngrad/run_multi_gpus_cifar10.sh#L5-L33) is a training script on cifar-10, which starts both training and evaluating. You can change those hyper-parameters to play. 
+
+Use `--help` to check descriptions for usage of python executives. For example,
+```
+bazel-bin/inception/cifar10_train --help
+```
+Some important configurations related to TernGrad:
+```
+--size_to_binarize SIZE_TO_BINARIZE
+    The min number of parameters in a Variable (weights/biases) to enable ternarizing this Variable. 
+--num_gpus NUM_GPUS   
+    How many GPUs to use.
+--num_nodes NUM_NODES
+    How many virtual nodes to use. One GPU can have multiple nodes 
+    This enables to emulate multiple workers in one GPU
+--grad_bits [32/1]
+    The number of gradient bits. Either 32 or 1. 32 for floating, and 1 for terngrad 
+    (I know ternary is not 1 bit. This is just an argument to use either floating or terngrad. 
+    We may consider to extend it to more options ranging from terngrad to floating, 
+    like 2 bits, 4 bits, 8 bits, etc)
+--clip_factor CLIP_FACTOR
+    The factor of stddev to clip gradients (0.0 means no clipping). 
+    This is the value of c in gradient clipping technique.
+--quantize_logits [True/False]
+--noquantize_logits                        
+    If quantize the gradients in the last logits layer. 
+    (sometimes, a skew distribution of gradients in last layer may affect the effectiveness of terngrad.
+    asymmetric ternary levels may be more effective)
+```
+More explanations are also covered in [run_multi_gpus_cifar10.sh](/terngrad/run_multi_gpus_cifar10.sh#L5-L33).
+
+More training bash scripts are in [terngrad](/terngrad), which have similar arguments. 
 
 # SGD with 32bit gradients
 ## Build and run evaluating/training LeNet on mnist
