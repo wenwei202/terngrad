@@ -12,6 +12,7 @@ bazel-bin/inception/cifar10_distributed_train \
 --batch_size 64 \
 --num_epochs_per_decay 200 \
 --max_steps 300000 \
+--weight_decay 0.004 \
 --net cifar10_alexnet \
 --image_size 24 \
 --data_dir="$HOME/dataset/cifar10-data-shard-0-499" \
@@ -28,6 +29,7 @@ bazel-bin/inception/cifar10_distributed_train \
 --batch_size 64 \
 --num_epochs_per_decay 200 \
 --max_steps 300000 \
+--weight_decay 0.004 \
 --net cifar10_alexnet \
 --image_size 24 \
 --data_dir="$HOME/dataset/cifar10-data-shard-500-999" \
