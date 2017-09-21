@@ -8,6 +8,10 @@ This is a modified copy of TensorFlow [inception](https://github.com/tensorflow/
 
 **In this workspace, `inception` refers to all types of neural networks in a general way.**
 
+**Note that there is name abuse because of history reasons. All bingrad/binary gradient/binarizing in code comments and help info essentially refers to terngrad/ternary gradient/ternarizing. Will update them, but the code is correct and is exactly for terngrad**
+
+*More tutorials will be updated. Feel free to open an issue if any question.*
+
 # Dependencies
 Tested stable dependencies:
 * python 2.7 (Anaconda)
@@ -75,10 +79,52 @@ bazel build inception/download_and_preprocess_imagenet
 bazel-bin/inception/download_and_preprocess_imagenet "${DATA_DIR}"
 ```
 # Examples
-[Run](/terngrad/run_multi_gpus_cifar10.sh#L5-L33) terngrad on cifar-10, which starts both training and evaluating. You can change those hyper-parameters to play. More scripts are in [terngrad](/terngrad). 
-Use `--help` to check descriptions for usage of python executives. More tutorials will be updated. Feel free to open an issue if any question.
+## Training CifarNet by TernGrad with Adam
+```
+cd ${TERNGRAD_ROOT}/terngrad
+./run_multi_gpus_cifar10.sh
+```
+[run_multi_gpus_cifar10.sh](/terngrad/run_multi_gpus_cifar10.sh#L5-L33) is a training script on cifar-10, which
+* creates a subfolder under `$ROOT_WORKSPACE/${DATASET_NAME}_xxx/` to store the training data (`${ROOT_WORKSPACE}/${DATASET_NAME}_training_data/`), evaluating data (`${ROOT_WORKSPACE}/${DATASET_NAME}_eval_data/`) and logs (`${ROOT_WORKSPACE}/${DATASET_NAME}_info/`). The subfolder name or log filename is similar to `cifar10_cifar10_alexnet_24_adam_1_0.0002_2.5_0_0.004_0.9_1_128_2_Tue_Sep_19_15-27-51_EDT_2017`. 
+* starts training and 
+* starts evaluating.  
+You can change those environments to play.
 
-# SGD with 32bit gradients
+Use `--help` to check descriptions for usage of python executables. For example,
+```
+bazel-bin/inception/cifar10_train --help
+```
+Some important configurations related to TernGrad:
+```
+--size_to_binarize SIZE_TO_BINARIZE
+    The min number of parameters in a Variable (weights/biases) to enable ternarizing this Variable. 
+--num_gpus NUM_GPUS   
+    How many GPUs to use.
+--num_nodes NUM_NODES
+    How many virtual nodes to use. One GPU can have multiple nodes 
+    This enables to emulate multiple workers in one GPU
+--grad_bits [32/1]
+    The number of gradient bits. Either 32 or 1. 32 for floating, and 1 for terngrad 
+    (I know ternary is not 1 bit. This is just an argument to use either floating or terngrad. 
+    We may consider to extend it to more options ranging from terngrad to floating, 
+    like 2 bits, 4 bits, 8 bits, etc)
+--clip_factor CLIP_FACTOR
+    The factor of stddev to clip gradients (0.0 means no clipping). 
+    This is the value of c in gradient clipping technique.
+--quantize_logits [True/False]
+--noquantize_logits                        
+    If quantize the gradients in the last logits layer. 
+    (sometimes, a skew distribution of gradients in last layer may affect the effectiveness of terngrad.
+    asymmetric ternary levels may be more effective)
+```
+More explanations are also covered in [run_multi_gpus_cifar10.sh](/terngrad/run_multi_gpus_cifar10.sh#L5-L33).
+
+More training bash scripts are in [terngrad](/terngrad), which have similar arguments. 
+
+# python executables
+Bash scripts essentially call python executables. We list python commands here for agile development.
+Taking 32bit gradients as examples.
+
 ## Build and run evaluating/training LeNet on mnist
 ```
 cd ${TERNGRAD_ROOT}/terngrad
@@ -104,7 +150,6 @@ bazel-bin/inception/mnist_eval \
 --batch_size 100 \
 --checkpoint_dir /tmp/mnist_train  \
 --restore_avg_var True \
---tower 0 \
 --eval_interval_secs 300 \
 --eval_dir /tmp/mnist_eval \
 --subset test
@@ -135,7 +180,6 @@ bazel-bin/inception/cifar10_eval \
 --batch_size 50 \
 --checkpoint_dir /tmp/cifar10_train  \
 --restore_avg_var True \
---tower 0 \
 --eval_interval_secs 300 \
 --eval_dir /tmp/cifar10_eval \
 --subset test
@@ -166,7 +210,6 @@ bazel-bin/inception/imagenet_eval \
 --batch_size 50 \
 --checkpoint_dir /tmp/imagenet_train  \
 --restore_avg_var True \
---tower 0 \
 --eval_dir /tmp/imagenet_eval
 
 ```
