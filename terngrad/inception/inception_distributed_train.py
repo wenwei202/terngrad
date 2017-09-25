@@ -84,6 +84,9 @@ tf.app.flags.DEFINE_string('optimizer', 'momentum',
                           """The optimizer of SGD (momentum, adam, gd, rmsprop).""")
 tf.app.flags.DEFINE_float('momentum', 0.9,
                           """The momentum value of optimizer.""")
+tf.app.flags.DEFINE_string('learning_rate_decay_type','exponential',
+    'Specifies how the learning rate is decayed. One of "fixed", "exponential",'
+    ' or "polynomial"')
 
 # Configurations for BinGrad
 tf.app.flags.DEFINE_integer('grad_bits', 32,
@@ -146,14 +149,22 @@ def train(target, dataset, cluster_spec):
                         num_replicas_to_aggregate)
 
       # Decay the learning rate exponentially based on the number of steps.
-      if ('adam' == FLAGS.optimizer):
-        lr = FLAGS.initial_learning_rate
+      if ('fixed' == FLAGS.learning_rate_decay_type or 'adam' == FLAGS.optimizer):
+          lr = FLAGS.initial_learning_rate
+      elif 'exponential' == FLAGS.learning_rate_decay_type:
+          lr = tf.train.exponential_decay(FLAGS.initial_learning_rate,
+                                          global_step,
+                                          decay_steps,
+                                          FLAGS.learning_rate_decay_factor,
+                                          staircase=True)
+      elif 'polynomial' == FLAGS.learning_rate_decay_type:
+          lr = tf.train.polynomial_decay(FLAGS.initial_learning_rate,
+                                         global_step,
+                                         FLAGS.max_steps,
+                                         end_learning_rate=0.0,
+                                         power=0.5)
       else:
-        lr = tf.train.exponential_decay(FLAGS.initial_learning_rate,
-                                      global_step,
-                                      decay_steps,
-                                      FLAGS.learning_rate_decay_factor,
-                                      staircase=True)
+          raise ValueError('Wrong learning_rate_decay_type!')
 
       # Add a summary to track the learning rate.
       tf.summary.scalar('learning_rate', lr)
@@ -345,6 +356,6 @@ def train(target, dataset, cluster_spec):
         saver.save(sess,
                    os.path.join(FLAGS.train_dir, 'model.ckpt'),
                    global_step=global_step)
-        
+
       # Stop the supervisor.  This also waits for service threads to finish.
       sv.stop()
