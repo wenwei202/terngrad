@@ -7,4 +7,5 @@ terngrad/bazel-terngrad
 terngrad/bazel-testlogs
 terngrad/bazel-tf
 /.idea
+*/.idea
 *.pyc
