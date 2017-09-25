@@ -8,7 +8,7 @@ This is a modified copy of TensorFlow [inception](https://github.com/tensorflow/
 
 **In this workspace, `inception` refers to all types of neural networks in a general way.**
 
-**Note that there is name abuse because of history reasons. All bingrad/binary gradient/binarizing in code comments and help info essentially refers to terngrad/ternary gradient/ternarizing. Will update them, but the code is correct and is exactly for terngrad**
+**Note that there is name abuse because of history reasons. All "bingrad/binary gradient/binarizing" in code comments, help info and filenames essentially refers to "terngrad/ternary gradient/ternarizing". Will update them, but the code is correct and is exactly for terngrad**
 
 *More tutorials will be updated. Feel free to open an issue if any question.*
 
