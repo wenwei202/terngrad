@@ -242,8 +242,9 @@ def train(target, dataset, cluster_spec):
         'Batchnorm updates are missing'
       batchnorm_updates_op = tf.group(*batchnorm_updates)
       # Add dependency to compute batchnorm_updates.
-      with tf.control_dependencies([batchnorm_updates_op]):
-        total_loss = tf.identity(total_loss)
+      # put in the front compared with multi-gpu version
+      #with tf.control_dependencies([batchnorm_updates_op]):
+      #  total_loss = tf.identity(total_loss)
 
       # Compute gradients with respect to the loss.
       grads = opt.compute_gradients(total_loss)
@@ -255,7 +256,7 @@ def train(target, dataset, cluster_spec):
 
       apply_gradients_op = opt.apply_gradients(grads, global_step=global_step)
 
-      with tf.control_dependencies([apply_gradients_op]):
+      with tf.control_dependencies([apply_gradients_op, batchnorm_updates_op]):
         train_op = tf.identity(total_loss, name='train_op')
 
       # Get chief queue_runners and init_tokens, which is used to synchronize
@@ -339,11 +340,11 @@ def train(target, dataset, cluster_spec):
             tf.logging.info('Chief got exception while running!')
           raise
 
-      # Stop the supervisor.  This also waits for service threads to finish.
-      sv.stop()
-
       # Save after the training ends.
       if is_chief:
         saver.save(sess,
                    os.path.join(FLAGS.train_dir, 'model.ckpt'),
                    global_step=global_step)
+        
+      # Stop the supervisor.  This also waits for service threads to finish.
+      sv.stop()
