@@ -50,6 +50,8 @@ cd ${TERNGRAD_ROOT}/slim
 export DATA_PATH="${HOME}/dataset/cifar10-data/" # the directory of database
 python download_and_convert_data.py --dataset_name cifar10 --dataset_dir ${DATA_PATH}
 
+# Instead of putting all training examples in one tfrecord file, we can split them by enabling --shard
+# This is useful for distributed training by date parallelsim, where we should split data across nodes
 # Generate train-xxxxx-of-xxxxx (1000 shards in default) and test-00000-of-00001 tfrecord shards
 export DATA_PATH="${HOME}/dataset/cifar10-shard-data/" # the directory of database
 python download_and_convert_data.py \
@@ -78,7 +80,7 @@ bazel build inception/download_and_preprocess_imagenet
 # run it
 bazel-bin/inception/download_and_preprocess_imagenet "${DATA_DIR}"
 ```
-# Examples
+# Examples on multi-gpu mode
 ## Training CifarNet by TernGrad with Adam
 ```
 cd ${TERNGRAD_ROOT}/terngrad
@@ -121,7 +123,24 @@ More explanations are also covered in [run_multi_gpus_cifar10.sh](/terngrad/run_
 
 More training bash scripts are in [terngrad](/terngrad), which have similar arguments. 
 
-# python executables
+# Examples on distributed-node mode
+[run_dist_cifar10.sh](/terngrad/run_dist_cifar10.sh) is an example by launching one parameter server and two workers in `localhost`.
+Before start, we must split cifar-10 dataset to two parts:
+`$HOME/dataset/cifar10-data-shard-500-999` and `$HOME/dataset/cifar10-data-shard-0-499`, which each worker paralell fetches and trains its model replica.
+
+The python executable is `cifar10_distributed_train`, of which most arguments are similar to multi-gpu mode but with
+```
+--job_name JOB_NAME   One of "ps", "worker"
+--task_id TASK_ID     Task ID of the worker/replica running the training.
+--ps_hosts PS_HOSTS   Comma-separated list of hostname:port for the
+                      parameter server jobs. e.g.
+                      'machine1:2222,machine2:1111,machine2:2222'
+--worker_hosts WORKER_HOSTS
+                      Comma-separated list of hostname:port for the worker
+                      jobs. e.g. 'machine1:2222,machine2:1111,machine2:2222'
+```
+
+# Python executables
 Bash scripts essentially call python executables. We list python commands here for agile development.
 Taking 32bit gradients as examples.
 
