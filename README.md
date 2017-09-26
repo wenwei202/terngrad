@@ -128,7 +128,7 @@ More training bash scripts are in [terngrad](/terngrad), which have similar argu
 Before start, we must split cifar-10 dataset to two parts:
 `$HOME/dataset/cifar10-data-shard-500-999` and `$HOME/dataset/cifar10-data-shard-0-499`, which each worker paralell fetches and trains its model replica.
 
-The python executable is `cifar10_distributed_train`, of which most arguments are similar to multi-gpu mode but with
+The python executable is `bazel-bin/inception/cifar10_distributed_train`, of which most arguments are similar to `bazel-bin/inception/cifar10_train` for multi-gpu mode but with
 ```
 --job_name JOB_NAME   One of "ps", "worker"
 --task_id TASK_ID     Task ID of the worker/replica running the training.
@@ -139,7 +139,7 @@ The python executable is `cifar10_distributed_train`, of which most arguments ar
                       Comma-separated list of hostname:port for the worker
                       jobs. e.g. 'machine1:2222,machine2:1111,machine2:2222'
 ```
-More details [here](#backup-inception-in-tensorflow).
+For more details, type `bazel-bin/inception/cifar10_distributed_train --help` or go [here](#backup-inception-in-tensorflow).
 
 # Python executables
 Bash scripts essentially call python executables. We list python commands here for agile development.
