@@ -139,6 +139,7 @@ The python executable is `cifar10_distributed_train`, of which most arguments ar
                       Comma-separated list of hostname:port for the worker
                       jobs. e.g. 'machine1:2222,machine2:1111,machine2:2222'
 ```
+More details [here](#backup-inception-in-tensorflow).
 
 # Python executables
 Bash scripts essentially call python executables. We list python commands here for agile development.
