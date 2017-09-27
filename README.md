@@ -126,9 +126,15 @@ More training bash scripts are in [terngrad](/terngrad), which have similar argu
 # Examples on distributed-node mode
 ## ssh setup
 We provide a single script to remotely launch all workers and parameter servers.
-To enable this, all machines must share the same ssh key. Please follow this [tutorial](https://help.github.com/articles/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent/) to setup, and you can simply copy generated `~/.ssh/id_rsa` and `~/.ssh/id_rsa.pub` to all machines.
+To authorize access to each other, all machines must share the same ssh key. Please follow this [tutorial](https://help.github.com/articles/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent/) to setup. After generating key, you can simply copy keys (`~/.ssh/id_rsa` and `~/.ssh/id_rsa.pub`) to all machines.
+At the first run, you may need to answer `yes` to
+```
+The authenticity of host '10.236.176.29 (10.236.176.29)' can't be established.
+ECDSA key fingerprint is SHA256:jkfjkdslajfklsjaflkjs/jowufuf98e8e8eu9.
+Are you sure you want to continue connecting (yes/no)?
+```
 
-The bash script uses `ssh` to login and start worker/ps. If some configurations in `.bashrc` are necessary for training (e.g., the `PATH` of anaconda), you may need to source `~/.bashrc` in `~/.bash_profile` or `~/.profile` like 
+Our bash script uses `ssh` to login and start worker/ps. If some variables are configured in `.bashrc` and are necessary for training (e.g., the `PATH` of anaconda), you may need to source `~/.bashrc` in `~/.bash_profile` or `~/.profile` by adding 
 ```
 if [ -f ~/.bashrc ]; then
   . ~/.bashrc
@@ -142,6 +148,7 @@ case $- in
       *) return;;
 esac
 ```
+
 ## A toy example
 [run_dist_cifar10.sh](/terngrad/run_dist_cifar10.sh) is a toy example by launching one parameter server and two workers in `localhost`.
 Before start, we must split cifar-10 dataset to two parts:
