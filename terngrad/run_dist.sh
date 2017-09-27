@@ -11,15 +11,15 @@ WORKER_SCRIPT="./run_single_worker_cifarnet.sh"
 PS_SCRIPT="./run_single_ps_cifar10.sh"
 
 PS_HOSTS=( \
-  localhost:2222 \
+  10.236.176.29:2222 \
 )
 WORKER_HOSTS=( \
-  localhost:2224 \
-  localhost:2226 \
+  10.236.176.28:2224 \
+  10.236.176.29:2226 \
 )
 WORKER_DEVICES=( \
-  0 \
   1 \
+  2 \
 )
 DATA_DIR=( \
   ~/dataset/cifar10-data-shard-0-499 \

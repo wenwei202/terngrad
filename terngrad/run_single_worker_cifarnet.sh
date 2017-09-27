@@ -67,7 +67,6 @@ bazel-bin/inception/${DATASET_NAME}_distributed_train \
 --clip_factor ${CLIP_FACTOR} \
 --floating_grad_epoch ${FLOATING_GRAD_EPOCH} \
 --weight_decay ${WEIGHT_DECAY} \
---dropout_keep_prob ${DROPOUT_KEEP_PROB} \
 --momentum ${MOMENTUM} \
 --size_to_binarize ${SIZE_TO_BINARIZE} \
 --optimizer ${OPTIMIZER} \
