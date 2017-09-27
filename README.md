@@ -167,7 +167,9 @@ You only need to configure `config_dist.sh` (including workers, ps, gpu devices 
 
 Usage is explained within `config_dist.sh` script. 
 
-By default, results are saved in `${HOME}/tmp/`
+By default, results are saved in `${HOME}/tmp/`.
+
+You can stop all tasks by [stop_dist.sh](terngrad/stop_dist.sh)
 
 # Python executables
 Bash scripts essentially call python executables. We list python commands here for agile development.
