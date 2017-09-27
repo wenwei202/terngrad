@@ -43,11 +43,15 @@ def main(unused_args):
 
   cluster_spec = tf.train.ClusterSpec({'ps': ps_hosts,
                                        'worker': worker_hosts})
+  sess_config = tf.ConfigProto()
+  sess_config.gpu_options.allow_growth = True
+
   server = tf.train.Server(
       {'ps': ps_hosts,
        'worker': worker_hosts},
       job_name=FLAGS.job_name,
-      task_index=FLAGS.task_id)
+      task_index=FLAGS.task_id,
+      config=sess_config)
 
   if FLAGS.job_name == 'ps':
     # `ps` jobs wait for incoming connections from the workers.
