@@ -2,7 +2,7 @@
 set -e
 set -x
 
-. ./dist_config.sh
+. ./config_dist.sh 
 
 WORKER_NUM=${#WORKER_HOSTS[@]}
 DEVICE_NUM=${#WORKER_DEVICES[@]}
