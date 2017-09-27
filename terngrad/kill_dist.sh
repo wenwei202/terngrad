@@ -1,8 +1,8 @@
 #!/bin/bash
 set -e
-#set -x
+set -x
 
-bash ./dist_config.sh
+. ./dist_config.sh
 
 WORKER_NUM=${#WORKER_HOSTS[@]}
 DEVICE_NUM=${#WORKER_DEVICES[@]}

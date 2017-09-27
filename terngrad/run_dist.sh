@@ -2,7 +2,7 @@
 set -e
 #set -x
 
-bash ./dist_config.sh
+. ./dist_config.sh
 
 WORKER_STRING=$(echo ${WORKER_HOSTS[*]} | sed 's/ /,/g') 
 PS_STRING=$(echo ${PS_HOSTS[*]} | sed 's/ /,/g') 

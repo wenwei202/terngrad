@@ -1,5 +1,6 @@
 #!/bin/bash
 set -e
+set -x
 
 # The executable path. Must be the same across all nodes
 WORKSPACE="~/github/users/wenwei202/terngrad/terngrad"
