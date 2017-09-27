@@ -141,6 +141,21 @@ The python executable is `bazel-bin/inception/cifar10_distributed_train`, of whi
 ```
 For more details, type `bazel-bin/inception/cifar10_distributed_train --help` or go [here](#backup-inception-in-tensorflow).
 
+The bash script uses `ssh` to login and start worker/ps. If some configurations in `.bashrc` are necessary for training (e.g., the `PATH` of anaconda), you may need to source `~/.bashrc` in `~/.bash_profile` or `~/.profile` like 
+```
+if [ -f ~/.bashrc ]; then
+  . ~/.bashrc
+fi
+```
+In some linux distributions (e.g. ubuntu) you may need to comment
+```
+# If not running interactively, don't do anything
+case $- in
+    *i*) ;;
+      *) return;;
+esac
+```
+
 # Python executables
 Bash scripts essentially call python executables. We list python commands here for agile development.
 Taking 32bit gradients as examples.
