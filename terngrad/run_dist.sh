@@ -2,37 +2,8 @@
 set -e
 #set -x
 
-# The executable path. Must be the same across all nodes
-WORKSPACE="~/github/users/wenwei202/terngrad/terngrad"
+bash ./dist_config.sh
 
-#WORKER_SCRIPT="./run_single_worker_alexnet.sh"
-#PS_SCRIPT="./run_single_ps_imagenet.sh"
-WORKER_SCRIPT="./run_single_worker_cifarnet.sh"
-PS_SCRIPT="./run_single_ps_cifar10.sh"
-
-PS_HOSTS=( \
-  10.236.176.29:2222 \
-)
-WORKER_HOSTS=( \
-  10.236.176.28:2224 \
-  10.236.176.29:2226 \
-)
-WORKER_DEVICES=( \
-  1 \
-  2 \
-)
-DATA_DIR=( \
-  ~/dataset/cifar10-data-shard-0-499 \
-  ~/dataset/cifar10-data-shard-500-999 \
-)
-
-WORKER_STRING=$(echo ${WORKER_HOSTS[*]} | sed 's/ /,/g') 
-PS_STRING=$(echo ${PS_HOSTS[*]} | sed 's/ /,/g') 
-EXPERIMENT_ID=$(date)
-EXPERIMENT_ID=${EXPERIMENT_ID// /_}
-EXPERIMENT_ID=${EXPERIMENT_ID//:/-}
-
-PS_NUM=${#PS_HOSTS[@]}
 WORKER_NUM=${#WORKER_HOSTS[@]}
 DEVICE_NUM=${#WORKER_DEVICES[@]}
 DATA_NUM=${#DATA_DIR[@]}
@@ -47,28 +18,22 @@ then
   exit
 fi
 
-echo "${PS_NUM} ps hosts: ${PS_STRING}"
-echo "${WORKER_NUM} worker hosts: ${WORKER_STRING}"
 
-# start workers
-task_id=0
+# stop workers
 for HOST in ${WORKER_HOSTS[*]}; do
   worker=$(echo ${HOST} |cut -d':' -f1)
   ssh ${worker} "hostname; \
     cd ${WORKSPACE}; \
     pwd; \
-    ${WORKER_SCRIPT} ${PS_STRING} ${WORKER_STRING} worker ${task_id} ${WORKER_DEVICES[$task_id]} ${DATA_DIR[$task_id]} ${EXPERIMENT_ID}"
-  task_id=`expr $task_id + 1`
+    ./kill_local.sh "
 done
 
-# start ps
-task_id=0
+# stop ps
 for HOST in ${PS_HOSTS[*]}; do
   ps=$(echo ${HOST} |cut -d':' -f1)
   ssh ${ps} "hostname; \
              cd ${WORKSPACE}; \
              pwd; \
-             ${PS_SCRIPT} ${PS_STRING} ${WORKER_STRING} ps ${task_id} ${EXPERIMENT_ID}"
-  task_id=`expr $task_id + 1`
+             ./kill_local.sh "
 done
 
