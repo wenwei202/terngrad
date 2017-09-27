@@ -141,6 +141,10 @@ The python executable is `bazel-bin/inception/cifar10_distributed_train`, of whi
 ```
 For more details, type `bazel-bin/inception/cifar10_distributed_train --help` or go [here](#backup-inception-in-tensorflow).
 
+## ssh setup
+We provide a single script to remotely launch all workers and parameter servers.
+To enable this, all machines must share the same ssh key. Please follow this [tutorial](https://help.github.com/articles/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent/) to setup, and you can simply copy generated `~/.ssh/id_rsa` and `~/.ssh/id_rsa.pub` to all machines.
+
 The bash script uses `ssh` to login and start worker/ps. If some configurations in `.bashrc` are necessary for training (e.g., the `PATH` of anaconda), you may need to source `~/.bashrc` in `~/.bash_profile` or `~/.profile` like 
 ```
 if [ -f ~/.bashrc ]; then
