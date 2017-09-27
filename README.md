@@ -170,7 +170,7 @@ For more details, type `bazel-bin/inception/cifar10_distributed_train --help` or
 ## A single script to launch all
 Config [config_dist.sh](terngrad/config_dist.sh) and run [run_dist.sh](/terngrad/run_dist.sh). 
 
-You only need to configure `config_dist.sh` (including workers, ps, gpu devices and dataset paths), and write a `WORKER_SCRIPT` to specify how to start a worker by setting hyperparameters. 
+You only need to configure `config_dist.sh` (including workers, ps, gpu devices and dataset paths), and write a `WORKER_SCRIPT` to specify how to start a worker. [run_single_worker_cifarnet.sh](/terngrad/run_single_worker_cifarnet.sh) and [run_single_worker_alexnet.sh](/terngrad/run_single_worker_alexnet.sh) are two `WORKER_SCRIPT` examples, which basically set hyperparameters and start training.
 
 Usage is explained within `config_dist.sh` script. 
 
