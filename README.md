@@ -161,8 +161,13 @@ The python executable is `bazel-bin/inception/cifar10_distributed_train`, of whi
 For more details, type `bazel-bin/inception/cifar10_distributed_train --help` or go [here](#backup-inception-in-tensorflow).
 
 ## A single script to launch all
-[run_dist.sh](/terngrad/run_dist.sh). Usage is explained within the script.
+Config [config_dist.sh](terngrad/config_dist.sh) and run [run_dist.sh](/terngrad/run_dist.sh). 
 
+You only need to configure `config_dist.sh` (including workers, ps, gpu devices and dataset paths), and write a `WORKER_SCRIPT` to specify how to start a worker by setting hyperparameters. 
+
+Usage is explained within `config_dist.sh` script. 
+
+By default, results are saved in `${HOME}/tmp/`
 
 # Python executables
 Bash scripts essentially call python executables. We list python commands here for agile development.
