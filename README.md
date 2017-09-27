@@ -124,23 +124,6 @@ More explanations are also covered in [run_multi_gpus_cifar10.sh](/terngrad/run_
 More training bash scripts are in [terngrad](/terngrad), which have similar arguments. 
 
 # Examples on distributed-node mode
-[run_dist_cifar10.sh](/terngrad/run_dist_cifar10.sh) is an example by launching one parameter server and two workers in `localhost`.
-Before start, we must split cifar-10 dataset to two parts:
-`$HOME/dataset/cifar10-data-shard-500-999` and `$HOME/dataset/cifar10-data-shard-0-499`, which each worker paralell fetches and trains its model replica.
-
-The python executable is `bazel-bin/inception/cifar10_distributed_train`, of which most arguments are similar to `bazel-bin/inception/cifar10_train` for multi-gpu mode but with
-```
---job_name JOB_NAME   One of "ps", "worker"
---task_id TASK_ID     Task ID of the worker/replica running the training.
---ps_hosts PS_HOSTS   Comma-separated list of hostname:port for the
-                      parameter server jobs. e.g.
-                      'machine1:2222,machine2:1111,machine2:2222'
---worker_hosts WORKER_HOSTS
-                      Comma-separated list of hostname:port for the worker
-                      jobs. e.g. 'machine1:2222,machine2:1111,machine2:2222'
-```
-For more details, type `bazel-bin/inception/cifar10_distributed_train --help` or go [here](#backup-inception-in-tensorflow).
-
 ## ssh setup
 We provide a single script to remotely launch all workers and parameter servers.
 To enable this, all machines must share the same ssh key. Please follow this [tutorial](https://help.github.com/articles/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent/) to setup, and you can simply copy generated `~/.ssh/id_rsa` and `~/.ssh/id_rsa.pub` to all machines.
@@ -159,6 +142,27 @@ case $- in
       *) return;;
 esac
 ```
+## A toy example
+[run_dist_cifar10.sh](/terngrad/run_dist_cifar10.sh) is a toy example by launching one parameter server and two workers in `localhost`.
+Before start, we must split cifar-10 dataset to two parts:
+`$HOME/dataset/cifar10-data-shard-500-999` and `$HOME/dataset/cifar10-data-shard-0-499`, which each worker paralell fetches and trains its model replica.
+
+The python executable is `bazel-bin/inception/cifar10_distributed_train`, of which most arguments are similar to `bazel-bin/inception/cifar10_train` for multi-gpu mode but with
+```
+--job_name JOB_NAME   One of "ps", "worker"
+--task_id TASK_ID     Task ID of the worker/replica running the training.
+--ps_hosts PS_HOSTS   Comma-separated list of hostname:port for the
+                      parameter server jobs. e.g.
+                      'machine1:2222,machine2:1111,machine2:2222'
+--worker_hosts WORKER_HOSTS
+                      Comma-separated list of hostname:port for the worker
+                      jobs. e.g. 'machine1:2222,machine2:1111,machine2:2222'
+```
+For more details, type `bazel-bin/inception/cifar10_distributed_train --help` or go [here](#backup-inception-in-tensorflow).
+
+## A single script to launch all
+[run_dist.sh](/terngrad/run_dist.sh). Usage is explained within the script.
+
 
 # Python executables
 Bash scripts essentially call python executables. We list python commands here for agile development.
