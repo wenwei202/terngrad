@@ -21,6 +21,7 @@ import tensorflow as tf
 
 FLAGS = tf.app.flags.FLAGS
 
+OLD_GRAD_COLLECTION = '_old_grad_'
 
 def sub_gradients(grads_and_vars1, grads_and_vars2):
   """ Subtract two gradients."""

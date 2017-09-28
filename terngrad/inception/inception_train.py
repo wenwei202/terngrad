@@ -337,7 +337,8 @@ def train(dataset):
                   _grad = tf.get_variable(_var_scope.op.name+'_grad',
                                           shape=_var_scope.get_shape(),
                                           initializer=tf.constant_initializer(value=0.0),
-                                          trainable=False)
+                                          trainable=False,
+                                          collections=[spresgrad_common.OLD_GRAD_COLLECTION])
                   tower_prev_grad.append((_grad, _var_scope))
                 tower_prev_grads.append(tower_prev_grad)
 
@@ -527,6 +528,9 @@ def train(dataset):
 
     # Build an initialization operation to run below.
     init = tf.global_variables_initializer()
+    # Add initializer for grads
+    init = tf.group(init, tf.variables_initializer(
+      tf.get_collection(spresgrad_common.OLD_GRAD_COLLECTION)))
 
     # Start running operations on the Graph. allow_soft_placement must be set to
     # True to build towers on GPU, as some of the ops do not have GPU
