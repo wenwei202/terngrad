@@ -13,6 +13,13 @@ package_group(
 )
 
 py_library(
+    name = "spresgrad_common",
+    srcs = [
+        "spresgrad_common.py",
+    ],
+)
+
+py_library(
     name = "bingrad_common",
     srcs = [
         "bingrad_common.py",
@@ -246,6 +253,7 @@ py_library(
     ],
     deps = [
         ":bingrad_common",
+        ":spresgrad_common",
         ":image_processing",
         ":inception",
         ":models",
@@ -259,6 +267,7 @@ py_library(
     ],
     deps = [
         ":bingrad_common",
+        ":spresgrad_common",
         ":image_processing",
         ":inception",
         ":models",
