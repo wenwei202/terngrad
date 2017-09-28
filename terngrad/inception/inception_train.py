@@ -31,6 +31,7 @@ from inception import image_processing
 from inception import inception_model as inception
 from inception.slim import slim
 import inception.bingrad_common as bingrad_common
+import inception.spresgrad_common as spresgrad_common
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -87,7 +88,7 @@ tf.app.flags.DEFINE_float('clip_factor', 0.0,
                             """The factor of stddev to clip gradients.""")
 tf.app.flags.DEFINE_integer('floating_grad_epoch', 0,
                             """Performing floating gradients every # epochs. 0 means bingrad is always used.""")
-tf.app.flags.DEFINE_integer('save_tower', -1,
+tf.app.flags.DEFINE_integer('save_tower', 0,
                             """Save the variables in a specific tower. -1 refers all towers""")
 tf.app.flags.DEFINE_bool('use_encoding', False,
                             """If use encoder-decoder to communicate. Current implementation is NOT efficient.""")
@@ -95,6 +96,9 @@ tf.app.flags.DEFINE_bool('quantize_logits', False,
                             """If quantize the gradients in the last logits layer.""")
 tf.app.flags.DEFINE_integer('save_iter', 5000,
                             """Save summaries and model checkpoint per iterations.""")
+
+tf.app.flags.DEFINE_bool('spresgrad', False,
+                            """If use spresgrad.""")
 
 tf.app.flags.DEFINE_bool('benchmark_mode', False,
                             """benchmarking mode to test the scalability.""")
@@ -306,6 +310,7 @@ def train(dataset):
 
     # Calculate the gradients for each model tower.
     tower_grads = [] # gradients of cross entropy or total cost for each tower
+    tower_prev_grads = []
     tower_floating_grads = []  # gradients of cross entropy or total cost for each tower
     tower_batchnorm_updates = []
     tower_scalers = []
@@ -320,11 +325,22 @@ def train(dataset):
             # Force Variables to reside on the individual GPU.
             #with slim.arg_scope([slim.variables.variable], device='/cpu:0'):
             with slim.arg_scope([slim.variables.variable], device='/gpu:%d' % (i%FLAGS.num_gpus)):
-              # Calculate the loss for one tower of the ImageNet model. This
-              # function constructs the entire ImageNet model but shares the
-              # variables across all towers.
+              # Calculate the loss for one tower of the ImageNet model.
               loss, entropy_loss, reg_loss = _tower_loss(images_splits[i], labels_splits[i], num_classes,
                                  scope, reuse_variables)
+
+              # Create variables for gradients
+              if FLAGS.spresgrad:
+                trainable_vars_in_scope = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope)
+                tower_prev_grad = []
+                for _var_scope in trainable_vars_in_scope:
+                  _grad = tf.get_variable(_var_scope.op.name+'_grad',
+                                          shape=_var_scope.get_shape(),
+                                          initializer=tf.constant_initializer(value=0.0),
+                                          trainable=False)
+                  tower_prev_grad.append((_grad, _var_scope))
+                tower_prev_grads.append(tower_prev_grad)
+
             tower_entropy_losses.append(entropy_loss)
             tower_reg_losses.append(reg_loss)
 
@@ -342,6 +358,10 @@ def train(dataset):
             # Calculate the gradients for the batch of data on this ImageNet
             # tower.
             grads = opt.compute_gradients(loss, tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope=scope))
+
+            # Get spresgrad
+            if FLAGS.spresgrad:
+              grads = spresgrad_common.sub_gradients(grads, tower_prev_grads[i])
 
             # Keep track of the gradients across all towers.
             tower_grads.append(grads)
@@ -438,12 +458,18 @@ def train(dataset):
     for i in range(num_nodes):
       with tf.device('/gpu:%d' % (i%FLAGS.num_gpus)):
         with tf.name_scope('grad_applier_%d' % (i)) as scope:
-          # apply data loss SGD. global_step is incremented by num_nodes per iter
-          apply_gradient_op.append(opt.apply_gradients(tower_grads[i],
-                                          global_step=global_step))
-          #if FLAGS.weight_decay:
-          #  # apply regularization, global_step is omitted to avoid incrementation
-          #  apply_gradient_op.append(opt.apply_gradients(tower_reg_grads[i]))
+          # add prev gradients
+          if FLAGS.spresgrad:
+            accum_op = spresgrad_common.assign_add_gradients(tower_prev_grads[i], tower_grads[i])
+            with tf.control_dependencies([accum_op]):
+              # apply data loss SGD. global_step is incremented by num_nodes per iter
+              apply_gradient_op.append(opt.apply_gradients(tower_prev_grads[i],
+                                                           global_step=global_step))
+          else:
+            apply_gradient_op.append(opt.apply_gradients(tower_grads[i],
+                                                         global_step=global_step))
+
+
 
     # Add histograms for trainable variables.
     for var in tf.trainable_variables():
