@@ -178,6 +178,8 @@ By default, results are saved in `${HOME}/tmp/`.
 
 You can stop all tasks by [stop_dist.sh](terngrad/stop_dist.sh)
 
+Currently, distributed-node mode only supports 32bit gradients. It will take a while to hack the highly-encapsulated `SyncReplicasOptimizer` to integrate TernGrad. Keep updating.
+
 # Python executables
 Bash scripts essentially call python executables. We list python commands here for agile development.
 Taking 32bit gradients as examples.
