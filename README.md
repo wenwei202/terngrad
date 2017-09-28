@@ -188,7 +188,7 @@ Bash scripts essentially call python executables. We list python commands here f
 Taking 32bit gradients as examples.
 
 Node that, in TernGrad, parameters are allocated in each GPU to reduce communication because we can communicate quantized gradients instead of floating parameters.
-By default, the program saves parameters in all GPUs. To evaluate/test, use `--tower <gpu_id>` to specify which GPU's parameters you want to test on. (We will try to remove this feature to save storage, because the parameter sets are identical across all GPUs).
+By default, the program saves parameters in all GPUs. To evaluate/test, use `--tower <gpu_id>` to specify which GPU's parameters you want to test on. (We will try to remove this feature to save storage, because the parameter sets are identical across all GPUs). Alteratively, you can use `--save_tower 0` in training executables to avoid saving duplicated parameters, in which case, `--tower <gpu_id>` is unnecessary during evaluation/testing.
 
 ## Build and run evaluating/training LeNet on mnist
 ```
