@@ -100,11 +100,13 @@ Some important configurations related to TernGrad:
 ```
 --size_to_binarize SIZE_TO_BINARIZE
     The min number of parameters in a Variable (weights/biases) to enable ternarizing this Variable. 
+    1 means ternarizing all. You can use this to exclude some small Variables
 --num_gpus NUM_GPUS   
     How many GPUs to use.
 --num_nodes NUM_NODES
     How many virtual nodes to use. One GPU can have multiple nodes 
-    This enables to emulate multiple workers in one GPU
+    This enables emulating N workers in M GPUs, where N > M
+    This is a good feature to verify TernGrad algorithm when multiple GPUs are unavailable
 --grad_bits [32/1]
     The number of gradient bits. Either 32 or 1. 32 for floating, and 1 for terngrad 
     (I know ternary is not 1 bit. This is just an argument to use either floating or terngrad. 
@@ -113,6 +115,7 @@ Some important configurations related to TernGrad:
 --clip_factor CLIP_FACTOR
     The factor of stddev to clip gradients (0.0 means no clipping). 
     This is the value of c in gradient clipping technique.
+    2.5 works well in general
 --quantize_logits [True/False]
 --noquantize_logits                        
     If quantize the gradients in the last logits layer. 
