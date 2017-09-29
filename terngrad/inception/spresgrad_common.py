@@ -19,6 +19,9 @@ from __future__ import print_function
 
 import tensorflow as tf
 
+tf.app.flags.DEFINE_float('zero_threshold',0.0,
+                            """Threshold to zero out gradients.""")
+
 FLAGS = tf.app.flags.FLAGS
 
 OLD_GRAD_COLLECTION = '_old_grad_'
@@ -37,7 +40,13 @@ def sub_gradients(grads_and_vars1, grads_and_vars2):
       resgrads.append(None)
       continue
 
-    resgrads.append(tf.subtract(grad1, grad2))
+    #resgrads.append(tf.subtract(grad1, grad2))
+    resgrad = tf.subtract(grad1, grad2)
+    where_cond = tf.less(tf.abs(resgrad), FLAGS.zero_threshold)
+    resgrad = tf.where(where_cond,
+                   tf.zeros(tf.shape(resgrad)),
+                    resgrad)
+    resgrads.append(resgrad)
 
   return list(zip(resgrads, variables))
 

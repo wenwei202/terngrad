@@ -223,9 +223,13 @@ def _gradient_summary(grad_vars, name="", add_sparsity=False):
     grad_vars: pairs of gradients and variables
   """
   for grad, var in grad_vars:
-    if grad is not None:
+    if (grad is not None) and (not re.compile('.*(biases).*').match(var.op.name)):
       tf.summary.histogram(var.op.name + "/" + name +'/gradients', grad)
       if add_sparsity:
+        #where_cond = tf.less(tf.abs(grad), FLAGS.zero_threshold)
+        #grad = tf.where(where_cond,
+        #                tf.zeros(tf.shape(grad)),
+        #                grad)
         tf.summary.scalar(var.op.name + "/" + name +'/sparsity', tf.nn.zero_fraction(grad))
 
 
@@ -362,7 +366,9 @@ def train(dataset):
 
             # Get spresgrad
             if FLAGS.spresgrad:
+              _gradient_summary(grads, 'original', add_sparsity=True)
               grads = spresgrad_common.sub_gradients(grads, tower_prev_grads[i])
+              _gradient_summary(grads, 'residual', add_sparsity=True)
 
             # Keep track of the gradients across all towers.
             tower_grads.append(grads)
@@ -473,8 +479,8 @@ def train(dataset):
 
 
     # Add histograms for trainable variables.
-    for var in tf.trainable_variables():
-      tf.summary.histogram(var.op.name, var)
+    #for var in tf.trainable_variables():
+    #  tf.summary.histogram(var.op.name, var)
 
     # Track the moving averages of all trainable variables.
     # Note that we maintain a "double-average" of the BatchNormalization
