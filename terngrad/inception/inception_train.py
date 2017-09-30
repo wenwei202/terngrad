@@ -226,11 +226,11 @@ def _gradient_summary(grad_vars, name="", add_sparsity=False):
     if (grad is not None) and (not re.compile('.*(biases).*').match(var.op.name)):
       tf.summary.histogram(var.op.name + "/" + name +'/gradients', grad)
       if add_sparsity:
-        #where_cond = tf.less(tf.abs(grad), FLAGS.zero_threshold)
-        #grad = tf.where(where_cond,
-        #                tf.zeros(tf.shape(grad)),
-        #                grad)
-        tf.summary.scalar(var.op.name + "/" + name +'/sparsity', tf.nn.zero_fraction(grad))
+        abs_g = tf.abs(grad)
+        max_g = tf.reduce_max(abs_g)
+        hist_g = tf.histogram_fixed_width(abs_g, [0, max_g], 10)
+        tf.summary.scalar(var.op.name + "/" + name + '/grad_bin0', hist_g[0]/tf.size(grad))
+        #tf.summary.scalar(var.op.name + "/" + name +'/grad_sparsity', tf.nn.zero_fraction(grad))
 
 
 def train(dataset):
