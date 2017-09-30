@@ -179,6 +179,32 @@ Usage is explained within `config_dist.sh` script.
 
 By default, results are saved in `${HOME}/tmp/`.
 
+We also provide [split_dataset.sh](/terngrad/split_dataset.sh) to *locally* split shards of training dataset. Usage: `./split_dataset.sh <path-of-dataset-to-be-split> <total_workers> <worker_index>`.
+It will create a subfolder under `<path-of-dataset-to-be-split>` named as `worker_<worker_index>_of_<total_workers>`, and create links to shard files belonging to this worker.
+For example,
+```
+$ cd ~/dataset/imagenet-data/
+$ ls -l
+  -rw-rw-r-- 1 wew57 wew57 144582762 Mar 24  2017 train-00000-of-01024
+  -rw-rw-r-- 1 wew57 wew57 148475588 Mar 24  2017 train-00001-of-01024
+  -rw-rw-r-- 1 wew57 wew57 150196808 Mar 24  2017 train-00002-of-01024
+  ...
+  -rw-rw-r-- 1 wew57 wew57 144180160 Mar 24  2017 train-01021-of-01024
+  -rw-rw-r-- 1 wew57 wew57 140903282 Mar 24  2017 train-01022-of-01024
+  -rw-rw-r-- 1 wew57 wew57 138485470 Mar 24  2017 train-01023-of-01024
+$ cd /home/wew57/github/users/wenwei202/terngrad/terngrad
+$ ./split_dataset.sh ~/dataset/imagenet-data/ 16 1
+  Splitting to /home/wew57/dataset/imagenet-data//worker_1_of_16 ...
+$ ls -l /home/wew57/dataset/imagenet-data//worker_1_of_16
+  lrwxrwxrwx 1 wew57 wew57 55 Sep 30 17:30 train-00064-of-01024 -> /home/wew57/dataset/imagenet-data//train-00064-of-01024
+  lrwxrwxrwx 1 wew57 wew57 55 Sep 30 17:30 train-00065-of-01024 -> /home/wew57/dataset/imagenet-data//train-00065-of-01024
+  lrwxrwxrwx 1 wew57 wew57 55 Sep 30 17:30 train-00066-of-01024 -> /home/wew57/dataset/imagenet-data//train-00066-of-01024
+  ...
+  lrwxrwxrwx 1 wew57 wew57 55 Sep 30 17:30 train-00125-of-01024 -> /home/wew57/dataset/imagenet-data//train-00125-of-01024
+  lrwxrwxrwx 1 wew57 wew57 55 Sep 30 17:30 train-00126-of-01024 -> /home/wew57/dataset/imagenet-data//train-00126-of-01024
+  lrwxrwxrwx 1 wew57 wew57 55 Sep 30 17:30 train-00127-of-01024 -> /home/wew57/dataset/imagenet-data//train-00127-of-01024
+```
+
 You can stop all tasks by [stop_dist.sh](terngrad/stop_dist.sh)
 
 Currently, distributed-node mode only supports 32bit gradients. It will take a while to hack the highly-encapsulated `SyncReplicasOptimizer` to integrate TernGrad. Keep updating.
