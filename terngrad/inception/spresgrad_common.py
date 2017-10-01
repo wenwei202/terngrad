@@ -26,6 +26,24 @@ FLAGS = tf.app.flags.FLAGS
 
 OLD_GRAD_COLLECTION = '_old_grad_'
 
+def add_gradients(grads_and_vars1, grads_and_vars2):
+  """ Subtract two gradients."""
+  gradients1, variables = zip(*grads_and_vars1)
+  gradients2, variables_copy = zip(*grads_and_vars2)
+  assert (len(gradients1) == len(variables))
+  assert (len(gradients1) == len(gradients2))
+  assert (len(gradients2) == len(variables_copy))
+  resgrads = []
+  for grad1, grad2 in zip(gradients1, gradients2):
+    if grad1 is None:
+      assert grad2 is None
+      resgrads.append(None)
+      continue
+
+    resgrads.append(tf.add(grad1, grad2))
+
+  return list(zip(resgrads, variables))
+
 def sub_gradients(grads_and_vars1, grads_and_vars2):
   """ Subtract two gradients."""
   gradients1, variables = zip(*grads_and_vars1)

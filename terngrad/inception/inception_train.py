@@ -215,10 +215,20 @@ def _average_gradients(tower_grads):
     average_grads.append(grad_and_var)
   return average_grads
 
+def _build_grad_hist(grad_vars):
+  """Helper to create hist for gradiants.
+  Args:
+    grad_vars: pairs of gradients and variables
+  """
+  for grad, var in grad_vars:
+    if (grad is not None) and (not re.compile('.*(biases).*').match(var.op.name)):
+      abs_g = tf.abs(grad)
+      max_g = tf.reduce_max(abs_g)
+      return tf.histogram_fixed_width(abs_g, [0, max_g], 10)
+
 
 def _gradient_summary(grad_vars, name="", add_sparsity=False):
   """Helper to create summaries for gradiants and variables.
-
   Args:
     grad_vars: pairs of gradients and variables
   """
@@ -462,20 +472,21 @@ def train(dataset):
     # @ GPUs
     #apply_gradient_op = opt.apply_gradients(grads, global_step=global_step)
     apply_gradient_op = []
+    assign_prev_grad_op = [tf.no_op()]
     for i in range(num_nodes):
       with tf.device('/gpu:%d' % (i%FLAGS.num_gpus)):
         with tf.name_scope('grad_applier_%d' % (i)) as scope:
           # add prev gradients
           if FLAGS.spresgrad:
             accum_op = spresgrad_common.assign_add_gradients(tower_prev_grads[i], tower_grads[i])
-            with tf.control_dependencies([accum_op]):
+            assign_prev_grad_op.append(accum_op)
+            #with tf.control_dependencies([accum_op]):
               # apply data loss SGD. global_step is incremented by num_nodes per iter
-              apply_gradient_op.append(opt.apply_gradients(tower_prev_grads[i],
+            apply_gradient_op.append(opt.apply_gradients(spresgrad_common.add_gradients(tower_prev_grads[i], tower_grads[i]),
                                                            global_step=global_step))
           else:
             apply_gradient_op.append(opt.apply_gradients(tower_grads[i],
                                                          global_step=global_step))
-
 
 
     # Add histograms for trainable variables.
@@ -503,6 +514,7 @@ def train(dataset):
       batchnorm_updates_op = tf.group(batchnorm_updates_op, *tower_batchnorm_update)
     apply_gradient_op = tf.group(*apply_gradient_op)
     train_op = tf.group(apply_gradient_op, variables_averages_op, batchnorm_updates_op)
+    assign_prev_grad_op = tf.group(*assign_prev_grad_op)
 
     # Create a saver.
     #saver = tf.train.Saver(tf.all_variables())
@@ -596,6 +608,9 @@ def train(dataset):
       if step % FLAGS.save_iter == 0:
         summary_str = sess.run(summary_op)
         summary_writer.add_summary(summary_str, step)
+
+      # assign old gradients after summary
+      sess.run([assign_prev_grad_op])
 
       # Save the model checkpoint periodically.
       if step % FLAGS.save_iter == 0 or (step + 1) == FLAGS.max_steps:
