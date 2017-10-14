@@ -15,7 +15,7 @@ This is a modified copy of TensorFlow [inception](https://github.com/tensorflow/
 # Dependencies
 Tested stable dependencies:
 * python 2.7 (Anaconda)
-* Tensorflow v1.0.0 and v1.3.0 (installed from source code. Python wheel may work too)
+* Tensorflow v1.0.0 and v1.3.0
 * cudnn 5.1.5
 * bazel release 0.4.4
 
