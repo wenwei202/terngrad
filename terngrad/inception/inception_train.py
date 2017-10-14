@@ -99,6 +99,10 @@ tf.app.flags.DEFINE_integer('save_iter', 5000,
 
 tf.app.flags.DEFINE_bool('spresgrad', False,
                             """If use spresgrad.""")
+tf.app.flags.DEFINE_bool('spgrad', False,
+                            """If use spgrad.""")
+tf.app.flags.DEFINE_float('percentile', 90.0,
+                            """The percentile to sparsify gradients.""")
 
 tf.app.flags.DEFINE_bool('benchmark_mode', False,
                             """benchmarking mode to test the scalability.""")
@@ -238,7 +242,7 @@ def _gradient_summary(grad_vars, name="", add_sparsity=False):
       if add_sparsity:
         abs_g = tf.abs(grad)
         max_g = tf.reduce_max(abs_g)
-        hist_g = tf.histogram_fixed_width(abs_g, [0, max_g], 10)
+        hist_g = tf.histogram_fixed_width(abs_g, [0, max_g], 100)
         tf.summary.scalar(var.op.name + "/" + name + '/grad_bin0', hist_g[0]/tf.size(grad))
         #tf.summary.scalar(var.op.name + "/" + name +'/grad_sparsity', tf.nn.zero_fraction(grad))
 
@@ -373,6 +377,12 @@ def train(dataset):
             # Calculate the gradients for the batch of data on this ImageNet
             # tower.
             grads = opt.compute_gradients(loss, tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope=scope))
+
+            # sparsify gradients
+            if FLAGS.spgrad:
+              _gradient_summary(grads, 'original', add_sparsity=True)
+              grads = spresgrad_common.sparsify_gradients(grads, FLAGS.percentile)
+              _gradient_summary(grads, 'sparse', add_sparsity=True)
 
             # Get spresgrad
             if FLAGS.spresgrad:

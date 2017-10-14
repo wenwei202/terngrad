@@ -26,6 +26,37 @@ FLAGS = tf.app.flags.FLAGS
 
 OLD_GRAD_COLLECTION = '_old_grad_'
 
+def get_tensor_list_percentile(tlist, percentile):
+  # concat all
+  concat_t = None
+  for t in tlist:
+    if t is None:
+      continue
+
+    if concat_t is None:
+      concat_t = tf.reshape(tf.abs(t), [-1])
+    else:
+      concat_t = tf.concat([concat_t, tf.reshape(tf.abs(t), [-1])], 0)
+
+  return tf.contrib.distributions.percentile(concat_t, percentile)
+
+def sparsify_gradients(grads_and_vars, percentile):
+  """ Sparsify gradients."""
+  gradients, variables = zip(*grads_and_vars)
+  threshold = get_tensor_list_percentile(gradients, percentile)
+  sparse_gradients = []
+  for gradient in gradients:
+    if gradient is None:
+      sparse_gradients.append(None)
+      continue
+    abs_grad = tf.abs(gradient)
+    where_cond = tf.less(abs_grad, threshold)
+    sparse_gradient = tf.where(where_cond,
+             tf.zeros(tf.shape(gradient)),
+             gradient)
+    sparse_gradients.append(sparse_gradient)
+  return list(zip(sparse_gradients, variables))
+
 def add_gradients(grads_and_vars1, grads_and_vars2):
   """ Subtract two gradients."""
   gradients1, variables = zip(*grads_and_vars1)
