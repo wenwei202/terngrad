@@ -305,6 +305,10 @@ bazel-bin/inception/imagenet_eval \
 
 ```
 
+# Open questions
+  1. How will TernGrad work with asynchronous SGD 
+  2. How to reduce variance of TernGrad when the larger variance introduces some accuracy loss
+  3. How will TernGrad work when server-to-worker gradients are ternarized in the same way
 
 # Backup (Inception in TensorFlow)
 
