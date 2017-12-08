@@ -4,6 +4,8 @@ This repo is the TensorFlow code for our oral paper in NIPS 2017 ([TernGrad: Ter
 
 For the code of [NIPS 2016](http://papers.nips.cc/paper/6504-learning-structured-sparsity-in-deep-neural-networks.pdf) and [ICCV 2017](https://arxiv.org/abs/1703.09746) to accelerate the inference of DNNs, please go to [here](https://github.com/wenwei202/caffe).
 
+[poster](/Poster_Wen_NIPS2017.pdf), [slides](/NIPS17-TernGrad-slides-v3.pdf)
+
 This is a modified copy of TensorFlow [inception](https://github.com/tensorflow/models/tree/master/inception) (with original contributions kept). 
 
 **In this workspace, `inception` refers to all types of neural networks in a general way.**
