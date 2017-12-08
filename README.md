@@ -12,7 +12,7 @@ This is a modified copy of TensorFlow [inception](https://github.com/tensorflow/
 
 **Note that there is name abuse because of history reasons. All "bingrad/binary gradient/binarizing" in code comments, help info and filenames essentially refers to "terngrad/ternary gradient/ternarizing". Will update them, but the code is correct and is exactly for terngrad**
 
-*More tutorials will be updated. Feel free to open an issue if any question.*
+*The code is for algorithm evaluation only, i.e., -1,0,1 are still represented in floating precision. Hacking TensorFlow to support encoder/decoder of ternary gradients is burdensome. We may switch to Caffe2 for real implementation.*
 
 # Dependencies
 Tested stable dependencies:
