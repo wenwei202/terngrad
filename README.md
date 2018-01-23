@@ -2,8 +2,6 @@
 # Introduction
 This repo is the TensorFlow code for our oral paper in NIPS 2017 ([TernGrad: Ternary Gradients to Reduce Communication in Distributed Deep Learning](https://papers.nips.cc/paper/6749-terngrad-ternary-gradients-to-reduce-communication-in-distributed-deep-learning.pdf)).
 
-For the code of [NIPS 2016](http://papers.nips.cc/paper/6504-learning-structured-sparsity-in-deep-neural-networks.pdf) and [ICCV 2017](https://arxiv.org/abs/1703.09746) to accelerate the inference of DNNs, please go to [here](https://github.com/wenwei202/caffe).
-
 [poster](/Poster_Wen_NIPS2017.pdf), [slides](/NIPS17-TernGrad-slides-v3.pdf)
 
 This is a modified copy of TensorFlow [inception](https://github.com/tensorflow/models/tree/master/inception) (with original contributions kept). 
@@ -13,6 +11,8 @@ This is a modified copy of TensorFlow [inception](https://github.com/tensorflow/
 **Note that there is name abuse because of history reasons. All "bingrad/binary gradient/binarizing" in code comments, help info and filenames essentially refers to "terngrad/ternary gradient/ternarizing". Will update them, but the code is correct and is exactly for terngrad**
 
 *The code is for algorithm evaluation only, i.e., -1,0,1 are still represented in floating precision. Hacking TensorFlow to support encoder/decoder of ternary gradients is burdensome. We may switch to Caffe2 for real implementation.*
+
+For the code of [NIPS 2016](http://papers.nips.cc/paper/6504-learning-structured-sparsity-in-deep-neural-networks.pdf) and [ICCV 2017](https://arxiv.org/abs/1703.09746) to accelerate the inference of DNNs, please go to [here](https://github.com/wenwei202/caffe).
 
 # Dependencies
 Tested stable dependencies:
