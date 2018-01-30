@@ -12,7 +12,7 @@ This is a modified copy of TensorFlow [inception](https://github.com/tensorflow/
 
 *The code is for algorithm evaluation only, i.e., -1,0,1 are still represented in floating precision. Hacking TensorFlow to support encoder/decoder of ternary gradients is burdensome. We may switch to Caffe2 for system level implementation.*
 
-For the interests in accelerating the inference of DNNs ([NIPS 2016](http://papers.nips.cc/paper/6504-learning-structured-sparsity-in-deep-neural-networks.pdf) and [ICCV 2017](https://arxiv.org/abs/1703.09746)), please go to [here](https://github.com/wenwei202/caffe).
+For the interests in accelerating the inference of DNNs ([NIPS 2016](http://papers.nips.cc/paper/6504-learning-structured-sparsity-in-deep-neural-networks.pdf), [ICCV 2017](https://arxiv.org/abs/1703.09746) and [ICLR 2018](https://arxiv.org/abs/1709.05027). The code links are [here](https://github.com/wenwei202/caffe) and [there](https://github.com/wenwei202/iss-rnns).
 
 # Dependencies
 Tested stable dependencies:
