@@ -131,7 +131,7 @@ More training bash scripts are in [terngrad](/terngrad), which have similar argu
 # Examples on distributed-node mode
 ## ssh setup
 We provide a single script to remotely launch all workers and parameter servers.
-To authorize access to each other, all machines must share the same ssh key. Please follow this [tutorial](https://help.github.com/articles/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent/) to setup. After generating key, you can simply copy keys (`~/.ssh/id_rsa` and `~/.ssh/id_rsa.pub`) to all machines.
+To authorize access to each other, all machines must share the same ssh key. Please follow this [tutorial](https://help.github.com/articles/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent/) to setup. Moreover, make sure you have added the content in the public key (`~/.ssh/id_rsa.pub`) to `~/.ssh/authorized_keys`. In some systems, you also need to add the public key to `~/.ssh/authorized_keys2`. After this, you can simply copy keys (`~/.ssh/id_rsa` and `~/.ssh/id_rsa.pub`) and authorizing files (`~/.ssh/authorized_keys` and `~/.ssh/authorized_keys2`) to all machines. 
 At the first run, you may need to answer `yes` to
 ```
 The authenticity of host '10.236.176.29 (10.236.176.29)' can't be established.
