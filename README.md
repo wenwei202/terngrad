@@ -10,7 +10,7 @@ This is a modified copy of TensorFlow [inception](https://github.com/tensorflow/
 
 **Note that there is name abuse because of history reasons. All "bingrad/binary gradient/binarizing" in code comments, help info and filenames essentially refers to "terngrad/ternary gradient/ternarizing". Will update them, but the code is correct and is exactly for terngrad**
 
-*The code is for algorithm evaluation only, i.e., -1,0,1 are still represented in floating precision. Hacking TensorFlow to support encoder/decoder of ternary gradients is burdensome. We may switch to Caffe2 for system level implementation.*
+*The code is for algorithm evaluation only, i.e., -1,0,1 are still represented in floating precision. We are hacking TensorFlow/Caffe2 to support encoder/decoder of ternary gradients.*
 
 For the interests in accelerating the inference of DNNs ([NIPS 2016](http://papers.nips.cc/paper/6504-learning-structured-sparsity-in-deep-neural-networks.pdf), [ICCV 2017](https://arxiv.org/abs/1703.09746) and [ICLR 2018](https://arxiv.org/abs/1709.05027)) using sparsity and low rank approximation, the code links are [here](https://github.com/wenwei202/caffe) and [there](https://github.com/wenwei202/iss-rnns).
 
