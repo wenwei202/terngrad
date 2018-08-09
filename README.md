@@ -1,6 +1,6 @@
 
 # Introduction
-Implementation to appear in [Caffe2/Pytorch 1.0](https://github.com/pytorch/pytorch/tree/master/caffe2) master soon.
+Implementation to appear in the master branch of [Caffe2/Pytorch 1.0](https://github.com/pytorch/pytorch/tree/master/caffe2) soon.
 
 This repo is the TensorFlow code for our oral paper in NIPS 2017 ([TernGrad: Ternary Gradients to Reduce Communication in Distributed Deep Learning](https://papers.nips.cc/paper/6749-terngrad-ternary-gradients-to-reduce-communication-in-distributed-deep-learning.pdf)).
 
