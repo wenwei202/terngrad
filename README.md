@@ -1,6 +1,6 @@
 
 # Introduction
-Implementation is now in [Caffe2/Pytorch 1.0](https://github.com/pytorch/pytorch/blob/master/caffe2/operators/fused_rowwise_random_quantization_ops.cc).
+Implementation is now in [Caffe2/Pytorch 1.0](https://github.com/pytorch/pytorch/blob/master/caffe2/operators/fused_rowwise_random_quantization_ops.cc). TernGrad is landed into Facebook production to overcome communication bottleneck in large-scale training.
 
 This repo is the TensorFlow code for our oral paper in NIPS 2017 ([TernGrad: Ternary Gradients to Reduce Communication in Distributed Deep Learning](https://papers.nips.cc/paper/6749-terngrad-ternary-gradients-to-reduce-communication-in-distributed-deep-learning.pdf)).
 
