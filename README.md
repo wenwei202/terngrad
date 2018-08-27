@@ -1,6 +1,6 @@
 
 # Introduction
-The implementations of quantization and de-quantization operators are now available in [Caffe2/Pytorch 1.0](https://github.com/pytorch/pytorch/blob/master/caffe2/operators/fused_rowwise_random_quantization_ops.cc) ([an example](https://github.com/pytorch/pytorch/blob/master/caffe2/python/operator_test/rand_quantization_op_test.py)). TernGrad is landed into Facebook AI platform in production to overcome communication bottleneck in large-scale training.
+**The implementations of quantization and de-quantization operators are now available in [Caffe2/Pytorch 1.0](https://github.com/pytorch/pytorch/blob/master/caffe2/operators/fused_rowwise_random_quantization_ops.cc) ([an example](https://github.com/pytorch/pytorch/blob/master/caffe2/python/operator_test/rand_quantization_op_test.py)). TernGrad is landed into Facebook AI platform in production to overcome communication bottleneck in large-scale training.**
 
 This repo is the TensorFlow code for our oral paper in NIPS 2017 ([TernGrad: Ternary Gradients to Reduce Communication in Distributed Deep Learning](https://papers.nips.cc/paper/6749-terngrad-ternary-gradients-to-reduce-communication-in-distributed-deep-learning.pdf)).
 
@@ -8,9 +8,9 @@ This repo is the TensorFlow code for our oral paper in NIPS 2017 ([TernGrad: Ter
 
 This is a modified copy of TensorFlow [inception](https://github.com/tensorflow/models/tree/master/inception) (with original contributions kept). 
 
-**In this workspace, `inception` refers to all types of neural networks in a general way.**
+*In this workspace, `inception` refers to all types of neural networks in a general way.*
 
-**Note that there is name abuse because of history reasons. All "bingrad/binary gradient/binarizing" in code comments, help info and filenames essentially refers to "terngrad/ternary gradient/ternarizing". Will update them, but the code is correct and is exactly for terngrad**
+*Note that there is name abuse because of history reasons. All "bingrad/binary gradient/binarizing" in code comments, help info and filenames essentially refers to "terngrad/ternary gradient/ternarizing". Will update them, but the code is correct and is exactly for terngrad*
 
 *The code is for algorithm evaluation only, i.e., -1,0,1 are still represented in floating precision. We are hacking TensorFlow/Caffe2 to support encoder/decoder of ternary gradients.*
 
