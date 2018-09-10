@@ -4,7 +4,7 @@
 
 This repo is the TensorFlow code for our oral paper in NIPS 2017 ([TernGrad: Ternary Gradients to Reduce Communication in Distributed Deep Learning](https://papers.nips.cc/paper/6749-terngrad-ternary-gradients-to-reduce-communication-in-distributed-deep-learning.pdf)).
 
-[poster](/Poster_Wen_NIPS2017.pdf), [slides](/NIPS17-TernGrad-slides-v3.pdf)
+[video](https://www.youtube.com/watch?v=WWWQXTb_69c&feature=youtu.be&t=20s), [poster](/Poster_Wen_NIPS2017.pdf), [slides](/NIPS17-TernGrad-slides-v3.pdf)
 
 This is a modified copy of TensorFlow [inception](https://github.com/tensorflow/models/tree/master/inception) (with original contributions kept). 
 
